@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cursor Update &amp; Install Fixes &mdash; Reference</title>
+<style>
+  :root{
+    --bg:#0d1117;--panel:#161b22;--border:#30363d;--text:#e6edf3;--muted:#8b949e;
+    --accent:#58a6ff;--ok:#3fb950;--warn:#d29922;--err:#f85149;--code:#1c2430;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.6;padding:0 0 60px;}
+  header{background:linear-gradient(135deg,#1f6feb22,#0d1117);border-bottom:1px solid var(--border);
+    padding:36px 40px 26px;}
+  h1{margin:0 0 6px;font-size:1.8em;}
+  .sub{color:var(--muted);font-size:1.0em;}
+  .wrap{max-width:980px;margin:0 auto;padding:0 40px;}
+  h2{margin:34px 0 10px;font-size:1.3em;border-bottom:1px solid var(--border);padding-bottom:6px;}
+  h3{margin:22px 0 6px;font-size:1.08em;color:var(--accent);}
+  p.note{color:var(--muted);margin:6px 0 14px;}
+  code{font-family:'Cascadia Code',Consolas,monospace;font-size:0.86em;background:var(--code);
+    border:1px solid var(--border);border-radius:5px;padding:1px 6px;color:#9ecbff;}
+  pre{background:var(--code);border:1px solid var(--border);border-radius:8px;padding:14px 16px;
+    overflow-x:auto;font-family:'Cascadia Code',Consolas,monospace;font-size:0.84em;color:#d6deeb;}
+  pre code{background:none;border:none;padding:0;color:inherit;}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin:14px 0;}
+  .card.err{border-left:3px solid var(--err);}
+  .card.warn{border-left:3px solid var(--warn);}
+  .card.ok{border-left:3px solid var(--ok);}
+  .pill{display:inline-block;background:#21262d;border:1px solid var(--border);border-radius:6px;
+    padding:1px 8px;font-family:monospace;font-size:0.82em;color:var(--accent);}
+  ol,ul{margin:.4rem 0 .6rem 1.2rem;}
+  li{margin:.3rem 0;}
+  table{width:100%;border-collapse:collapse;margin:12px 0;background:var(--panel);
+    border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+  th{text-align:left;background:#1c2430;color:var(--accent);font-size:0.82em;text-transform:uppercase;
+    letter-spacing:.04em;padding:10px 14px;border-bottom:1px solid var(--border);}
+  td{padding:10px 14px;border-bottom:1px solid var(--border);vertical-align:top;font-size:0.92em;}
+  tr:last-child td{border-bottom:none;}
+  .tag{display:inline-block;font-size:0.7em;padding:1px 7px;border-radius:20px;border:1px solid var(--border);
+    color:var(--muted);text-transform:uppercase;letter-spacing:.04em;vertical-align:middle;}
+  .tag.err{color:var(--err);border-color:#f8514955;}
+  .tag.ok{color:var(--ok);border-color:#3fb95055;}
+  strong.k{color:var(--warn);}
+  footer{max-width:980px;margin:36px auto 0;padding:16px 40px 0;border-top:1px solid var(--border);
+    color:var(--muted);font-size:0.84em;}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap" style="padding:0;">
+    <h1>&#x1F5B1;&#xFE0F; Cursor IDE &mdash; Update &amp; Install Fixes</h1>
+    <div class="sub">Canonical playbook for fixing Cursor update/install failures on the HP&nbsp;Omen (gain). Built from repeated real fixes.</div>
+  </div>
+</header>
+<div class="wrap">
+
+<div class="card warn">
+  <strong>The one-line summary:</strong> Cursor's in-app updater fails because it tries to replace files
+  (<code>Cursor.exe</code>, <code>node.exe</code>) <em>while Cursor or its helper processes are still running</em>.
+  The reliable fix is always: <strong>kill every Cursor-related process, then run the standalone installer with Cursor closed.</strong>
+</div>
+
+<h2>&#x1F4CC; Standard Operating Procedure (do this every update)</h2>
+<ol>
+  <li><strong>Don't use the in-app updater</strong> (Help &rarr; Check for Updates). It forces full restarts and repeatedly fails. Use the manual installer instead.</li>
+  <li><strong>Download the latest user-setup x64 installer</strong> from Cursor's official server (see "Getting the installer" below). Save to <span class="pill">E:\Categories\Software_Installs</span>.</li>
+  <li><strong>Kill ALL Cursor-related processes</strong> (see the kill script). This includes the sneaky <code>node.exe</code> helpers inside the Cursor folder.</li>
+  <li><strong>Do NOT reopen Cursor</strong> until the install fully completes &mdash; launching it mid-install respawns the helpers and re-locks files.</li>
+  <li><strong>Run the installer</strong>: right-click &rarr; Properties &rarr; <strong>Unblock</strong> if shown &rarr; run it (user-setup needs no admin).</li>
+  <li><strong>Verify</strong> the installed version afterward (Help &rarr; About).</li>
+</ol>
+
+<h2>&#x1F6A8; Known errors &amp; their fixes</h2>
+
+<div class="card err">
+  <h3>"The process cannot access the file because it is being used by another process" <span class="tag err">file lock</span></h3>
+  <p class="note">Installer can't replace <code>Cursor.exe</code>. Cause: Cursor (or a leftover process) is still running.</p>
+  <strong>Fix:</strong> Kill all Cursor processes (main app + helpers + <code>inno_updater.exe</code>), then click <strong>Retry</strong>.
+</div>
+
+<div class="card err">
+  <h3>"Failed to create file handle" / "verify there are no Cursor processes still executing" <span class="tag err">file lock</span></h3>
+  <p class="note">Same root cause. There are often <strong>30+ Cursor.exe</strong> helper/renderer/GPU/extension-host
+  processes alive even when the window is closed. Plus <code>inno_updater.exe</code> (the Inno Setup updater helper) can hold the handle.</p>
+  <strong>Fix:</strong> Kill everything matching <code>cursor</code> or <code>inno_updater</code>, confirm 0 remain, then Retry.
+</div>
+
+<div class="card err">
+  <h3>"delete file failed&hellip; access is denied: node.exe" <span class="tag err">node lock</span></h3>
+  <p class="note">(The filename may appear garbled in the dialog, e.g. "Nod.Dexe" &mdash; that's <code>node.exe</code>.)
+  Cause: Cursor's bundled <strong>Node helper processes</strong> are still running from inside the install folder:
+  <span class="pill">...\cursor\resources\app\resources\helpers\node.exe</span>. They survive after the Cursor window closes,
+  and because they're named <code>node</code> (not <code>cursor</code>), a normal "close Cursor" and even a
+  <code>cursor</code>-only process kill miss them.</p>
+  <strong class="k">Fix:</strong> Kill <em>only</em> the <code>node.exe</code> processes whose path is under the cursor folder
+  &mdash; never blanket-kill all node.exe (that would take down dev servers, Adobe, etc.). Then Retry.
+</div>
+
+<div class="card warn">
+  <h3>"The latest version of Cursor is already installed" but it's broken / older <span class="tag">version skip</span></h3>
+  <p class="note">The reinstaller compares versions and skips if yours is equal-or-newer, doing nothing. Happens after a half-finished update leaves mismatched files.</p>
+  <strong>Fix:</strong> Download a genuinely newer build, or do a full uninstall + clean reinstall.
+</div>
+
+<h2>&#x1F527; The kill script (targeted &amp; safe)</h2>
+<p class="note">Kills Cursor, its in-folder node helpers, and inno_updater &mdash; while leaving your other node.exe
+(dev servers, Adobe Creative Cloud, global nodejs) untouched. Run in PowerShell.</p>
+<pre><code># Kill Cursor app + in-folder node helpers + inno_updater (targeted)
+$cursorNode = Get-Process node -ErrorAction SilentlyContinue |
+    Where-Object { $_.Path -like "*\Local\Programs\cursor\*" }
+$cursorApp  = Get-Process -ErrorAction SilentlyContinue |
+    Where-Object { $_.ProcessName -match 'cursor|inno_updater' }
+
+($cursorNode + $cursorApp) | Stop-Process -Force -ErrorAction SilentlyContinue
+Start-Sleep -Seconds 2
+
+# Confirm clean (want 0 and 0)
+$nodeLeft = (Get-Process node -ErrorAction SilentlyContinue |
+    Where-Object { $_.Path -like "*\Local\Programs\cursor\*" } | Measure-Object).Count
+$appLeft  = (Get-Process -ErrorAction SilentlyContinue |
+    Where-Object { $_.ProcessName -match 'cursor|inno_updater' } | Measure-Object).Count
+"CURSOR_NODE_LEFT=$nodeLeft  CURSOR_PROCS_LEFT=$appLeft"
+</code></pre>
+
+<h2>&#x2705; Pre-retry verification (optional but smart)</h2>
+<p class="note">Confirms the lock is actually released and the folder is writable before you hit Retry.</p>
+<pre><code>$node = "$env:LOCALAPPDATA\Programs\cursor\resources\app\resources\helpers\node.exe"
+try { $fs=[System.IO.File]::Open($node,'Open','ReadWrite','None'); $fs.Close(); "NODE=UNLOCKED" }
+catch { "NODE=LOCKED" }
+$dir = "$env:LOCALAPPDATA\Programs\cursor"
+try { "x"|Out-File "$dir\_t.tmp"; Remove-Item "$dir\_t.tmp" -Force; "FOLDER=WRITABLE" }
+catch { "FOLDER=NOT_WRITABLE" }
+</code></pre>
+
+<h2>&#x2B07;&#xFE0F; Getting the installer (official, verifiable)</h2>
+<p class="note">Cursor's installers live on <span class="pill">downloads.cursor.com</span> under a per-release commit hash.
+This machine is <strong>user-setup, x64</strong> &mdash; match that.</p>
+<table>
+  <tr><th>Build type</th><th>URL pattern</th></tr>
+  <tr><td>User (this machine)</td><td><code>.../production/&lt;commit&gt;/win32/x64/user-setup/CursorUserSetup-x64-&lt;ver&gt;.exe</code></td></tr>
+  <tr><td>System-wide</td><td><code>.../production/&lt;commit&gt;/win32/x64/system-setup/CursorSetup-x64-&lt;ver&gt;.exe</code></td></tr>
+</table>
+<ul>
+  <li>Find the latest version + commit hash at <span class="pill">cursorhistory.com</span> or oslook/cursor-ai-downloads version-history.json. The site usually shows the <em>system</em> link &mdash; swap <code>system-setup/CursorSetup</code> &rarr; <code>user-setup/CursorUserSetup</code> for the user build.</li>
+  <li>A genuine build is <strong>~186 MB</strong>. A tiny file = an error page, not the installer.</li>
+  <li><strong>Avoid winget</strong> for Cursor: the <code>Anysphere.Cursor</code> package is frequently stale and known to report success while installing nothing.</li>
+</ul>
+
+<h2>&#x1F4DD; Download &amp; checksum snippet</h2>
+<pre><code>$ver = '3.7.36'
+$commit = '776d1f9d76df50a4e0aeca61819a88e7c1b861e2'   # update per release
+$url = "https://downloads.cursor.com/production/$commit/win32/x64/user-setup/CursorUserSetup-x64-$ver.exe"
+$out = "E:\Categories\Software_Installs\CursorUserSetup-x64-$ver.exe"
+Invoke-WebRequest -Uri $url -OutFile $out
+"SIZE=" + (Get-Item $out).Length
+"SHA256=" + (Get-FileHash -Algorithm SHA256 $out).Hash
+</code></pre>
+<p class="note">Note: chocolatey often lags the newest version, so a second-source checksum may not exist for brand-new builds.
+Provenance (official HTTPS host + release commit hash + ~186&nbsp;MB size) is the practical verification in that case.</p>
+
+<h2>&#x1F501; Post-install</h2>
+<ul>
+  <li>Confirm version: Cursor &rarr; <strong>Help &rarr; About</strong>.</li>
+  <li>Settings, extensions, and <span class="pill">.cursor\mcp.json</span> are preserved by the user-setup installer.</li>
+  <li>If an MCP server (e.g. Cipher-MCP) shows disconnected on first launch, <strong>restart Cursor once</strong> &mdash; normal MCP handshake-timeout, reconnects on the second start.</li>
+</ul>
+
+</div>
+<footer>
+  <div class="wrap" style="padding:0;">
+    Cursor update/install fixes &middot; HP-Omen (gain) &middot; last verified fix: node.exe helper lock (3.7.36 install) &middot; machine type: user-setup x64
+  </div>
+</footer>
+</body>
+</html>

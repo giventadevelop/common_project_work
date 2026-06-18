@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GitHub Organization Configuration &mdash; giventadeveloporg</title>
+<style>
+  :root{
+    --bg:#0d1117;--panel:#161b22;--border:#30363d;--text:#e6edf3;--muted:#8b949e;
+    --accent:#58a6ff;--ok:#3fb950;--warn:#d29922;--err:#f85149;--code:#1c2430;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.6;padding:0 0 60px;}
+  header{background:linear-gradient(135deg,#1f6feb22,#0d1117);border-bottom:1px solid var(--border);
+    padding:36px 40px 26px;}
+  h1{margin:0 0 6px;font-size:1.8em;}
+  .sub{color:var(--muted);font-size:1.0em;}
+  .wrap{max-width:980px;margin:0 auto;padding:0 40px;}
+  h2{margin:34px 0 10px;font-size:1.3em;border-bottom:1px solid var(--border);padding-bottom:6px;}
+  h3{margin:22px 0 6px;font-size:1.08em;color:var(--accent);}
+  h4{margin:16px 0 4px;font-size:0.98em;color:var(--text);}
+  p.note{color:var(--muted);margin:6px 0 14px;}
+  code{font-family:'Cascadia Code',Consolas,monospace;font-size:0.86em;background:var(--code);
+    border:1px solid var(--border);border-radius:5px;padding:1px 6px;color:#9ecbff;}
+  pre{background:var(--code);border:1px solid var(--border);border-radius:8px;padding:14px 16px;
+    overflow-x:auto;font-family:'Cascadia Code',Consolas,monospace;font-size:0.84em;color:#d6deeb;}
+  pre code{background:none;border:none;padding:0;color:inherit;}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin:14px 0;}
+  .card.err{border-left:3px solid var(--err);}
+  .card.warn{border-left:3px solid var(--warn);}
+  .card.ok{border-left:3px solid var(--ok);}
+  .pill{display:inline-block;background:#21262d;border:1px solid var(--border);border-radius:6px;
+    padding:1px 8px;font-family:monospace;font-size:0.82em;color:var(--accent);}
+  ol,ul{margin:.4rem 0 .6rem 1.2rem;}
+  li{margin:.3rem 0;}
+  table{width:100%;border-collapse:collapse;margin:12px 0;background:var(--panel);
+    border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+  th{text-align:left;background:#1c2430;color:var(--accent);font-size:0.82em;text-transform:uppercase;
+    letter-spacing:.04em;padding:10px 14px;border-bottom:1px solid var(--border);}
+  td{padding:10px 14px;border-bottom:1px solid var(--border);vertical-align:top;font-size:0.92em;}
+  tr:last-child td{border-bottom:none;}
+  .tag{display:inline-block;font-size:0.7em;padding:1px 7px;border-radius:20px;border:1px solid var(--border);
+    color:var(--muted);text-transform:uppercase;letter-spacing:.04em;vertical-align:middle;}
+  .tag.err{color:var(--err);border-color:#f8514955;}
+  .tag.ok{color:var(--ok);border-color:#3fb95055;}
+  .tag.warn{color:var(--warn);border-color:#d2992255;}
+  strong.k{color:var(--warn);}
+  footer{max-width:980px;margin:36px auto 0;padding:16px 40px 0;border-top:1px solid var(--border);
+    color:var(--muted);font-size:0.84em;}
+  a{color:var(--accent);text-decoration:none;}
+  a:hover{text-decoration:underline;}
+  .flow{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:18px 20px;
+    margin:14px 0;font-family:monospace;font-size:0.88em;line-height:1.8;color:var(--muted);}
+  .flow strong{color:var(--accent);}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap" style="padding:0;">
+    <h1>&#x1F465; GitHub Organization Configuration Guide</h1>
+    <div class="sub">Complete playbook for <strong>giventadeveloporg</strong> &mdash; seats, members, teams, repository access, and protected <code>release/*</code> branch merges. No credentials or secrets stored here.</div>
+  </div>
+</header>
+<div class="wrap">
+
+<div class="card warn">
+  <strong>The one-line summary:</strong> GitHub access is <em>layered</em>. A user needs (1)&nbsp;an org seat and membership,
+  (2)&nbsp;<strong>Write</strong> or <strong>Maintain</strong> on each repository via a team, and (3)&nbsp;a place on the
+  <strong>ruleset bypass list</strong> to merge into protected <code>release/*</code> branches. Team membership alone does
+  <strong>not</strong> grant write access across all org repositories.
+</div>
+
+<h2>&#x1F4CC; Organization overview</h2>
+<table>
+  <tr><th>Item</th><th>Value</th></tr>
+  <tr><td>Organization</td><td><a href="https://github.com/giventadeveloporg">giventadeveloporg</a></td></tr>
+  <tr><td>Plan</td><td>GitHub Team (paid seats)</td></tr>
+  <tr><td>Default member permission</td><td><strong>Read</strong> (org-wide base permission)</td></tr>
+  <tr><td>Developer team</td><td><span class="pill">giventa_team</span> &mdash; <a href="https://github.com/orgs/giventadeveloporg/teams/giventa_team">Teams page</a></td></tr>
+  <tr><td>Release ruleset</td><td><span class="pill">release_branch_ruleset</span> &mdash; targets <code>release/*</code> on all repositories</td></tr>
+  <tr><td>Repositories</td><td><code>mosc-temp</code>, <code>strapi-editorial-template</code>, <code>malayalees-us-site-boot</code>, <code>event-site-manager-batch-jobs</code></td></tr>
+</table>
+
+<h2>&#x1F9E9; The three permission layers</h2>
+<div class="flow">
+  <strong>Layer 1 &mdash; Org membership + seat</strong><br>
+  &nbsp;&nbsp;User is invited and accepts &rarr; counts against licensed seats<br><br>
+  <strong>Layer 2 &mdash; Repository access (Write / Maintain)</strong><br>
+  &nbsp;&nbsp;Team is linked to each repo with Write or Maintain &rarr; user can push branches and merge PRs<br><br>
+  <strong>Layer 3 &mdash; Ruleset bypass (release/*)</strong><br>
+  &nbsp;&nbsp;<span class="pill">giventa_team</span> on bypass list of <span class="pill">release_branch_ruleset</span> &rarr; user can work on protected release branches
+</div>
+
+<p class="note">All three layers are required for a developer to open a PR into <code>release/v1.0.0</code> (or any <code>release/*</code> branch) and merge it.</p>
+
+<h2>&#x1F4CB; Standard onboarding checklist (new developer)</h2>
+<ol>
+  <li>Add a licensed seat (if none available)</li>
+  <li>Invite user to the organization</li>
+  <li>User accepts the invitation</li>
+  <li>Add user to <span class="pill">giventa_team</span></li>
+  <li>Confirm <span class="pill">giventa_team</span> has <strong>Write</strong> or <strong>Maintain</strong> on every repo they need</li>
+  <li>Confirm <span class="pill">giventa_team</span> is on the <strong>Bypass list</strong> of <span class="pill">release_branch_ruleset</span></li>
+  <li>Verify effective permission with <code>gh api</code> (see Verification section)</li>
+</ol>
+
+<h2>Step 1 &mdash; Add a licensed seat</h2>
+<p class="note">Required when inviting returns HTTP&nbsp;422: <em>&ldquo;No seats are available to invite this user.&rdquo;</em></p>
+<ol>
+  <li>Sign in as an organization owner.</li>
+  <li>Open <a href="https://github.com/organizations/giventadeveloporg/settings/licensing"><span class="pill">/organizations/giventadeveloporg/settings/licensing</span></a></li>
+  <li>Review seats used vs seats purchased.</li>
+  <li>Click <strong>Add seats</strong> and purchase one additional seat.</li>
+  <li>Alternatively, remove an inactive member or cancel a pending invitation to free a seat.</li>
+</ol>
+
+<div class="card err">
+  <h3>Error: &ldquo;No seats are available to invite this user&rdquo; <span class="tag err">HTTP 422</span></h3>
+  <strong>Fix:</strong> Add a seat at the licensing URL above, or free an existing seat, then retry the invitation.
+</div>
+
+<h2>Step 2 &mdash; Invite a new organization member</h2>
+
+<h3>GitHub CLI</h3>
+<pre><code>gh api orgs/giventadeveloporg/invitations \
+  -f email=NEW_USER@example.com \
+  -f role=direct_member</code></pre>
+
+<h3>GitHub web UI</h3>
+<ol>
+  <li><a href="https://github.com/organizations/giventadeveloporg/settings/members">Organization &rarr; Settings &rarr; Members</a></li>
+  <li><strong>Invite member</strong> &rarr; enter email or GitHub username &rarr; role <strong>Member</strong></li>
+</ol>
+
+<div class="card ok">
+  <h3>Successful invitation (response shape) <span class="tag ok">reference</span></h3>
+<pre><code>{
+  "email": "NEW_USER@example.com",
+  "role": "direct_member",
+  "failed_at": null,
+  "team_count": 0
+}</code></pre>
+  <p class="note"><code>"team_count": 0</code> confirms the user was <strong>not</strong> added to any team automatically. Continue to Step&nbsp;3.</p>
+</div>
+
+<h3>Invite and assign team in one step (optional)</h3>
+<pre><code># Get team ID
+gh api orgs/giventadeveloporg/teams -q '.[] | select(.slug=="giventa_team") | .id'
+
+# Invite with team (replace TEAM_ID)
+gh api orgs/giventadeveloporg/invitations \
+  -f email=NEW_USER@example.com \
+  -f role=direct_member \
+  -F team_ids[]=TEAM_ID</code></pre>
+
+<h2>Step 3 &mdash; Add user to the developer team</h2>
+<p class="note">Org invitation does <strong>not</strong> add the user to <span class="pill">giventa_team</span> unless you explicitly do so (or used <code>team_ids</code> during invite).</p>
+
+<h3>Web UI</h3>
+<ol>
+  <li>Open <a href="https://github.com/orgs/giventadeveloporg/teams/giventa_team">giventa_team</a></li>
+  <li><strong>Members</strong> tab &rarr; <strong>Add member</strong></li>
+  <li>Search for their GitHub username (they must have accepted the org invite first)</li>
+</ol>
+
+<h3>GitHub CLI</h3>
+<pre><code>gh api -X PUT orgs/giventadeveloporg/teams/giventa_team/memberships/GITHUB_USERNAME \
+  -f role=member</code></pre>
+
+<h2>Step 4 &mdash; Release branch ruleset bypass</h2>
+<p class="note">Organization ruleset <span class="pill">release_branch_ruleset</span> protects all <code>release/*</code> branches across all repositories.</p>
+
+<table>
+  <tr><th>Ruleset setting</th><th>Value</th></tr>
+  <tr><td>Name</td><td><code>release_branch_ruleset</code></td></tr>
+  <tr><td>Enforcement</td><td>Active</td></tr>
+  <tr><td>Target repositories</td><td>All repositories</td></tr>
+  <tr><td>Target branches</td><td><code>release/*</code></td></tr>
+  <tr><td>Restrict creations / updates / deletions</td><td>Enabled &mdash; only bypass actors can modify matching refs</td></tr>
+  <tr><td>Require pull request before merging</td><td>Enabled</td></tr>
+  <tr><td>Bypass list</td><td><strong>Organization admin</strong> (Always allow) + <strong>giventa_team</strong> (Always allow)</td></tr>
+</table>
+
+<h3>Where to manage bypass</h3>
+<ol>
+  <li><a href="https://github.com/organizations/giventadeveloporg/settings/rules">Organization &rarr; Settings &rarr; Rules &rarr; Rulesets</a></li>
+  <li>Open <strong>release_branch_ruleset</strong></li>
+  <li>In <strong>Bypass list</strong>, click <strong>+ Add bypass</strong></li>
+  <li>Add a <strong>Team</strong> (preferred: <span class="pill">giventa_team</span>) or individual <strong>User</strong></li>
+  <li>Set permission to <strong>Always allow</strong></li>
+</ol>
+
+<h2>Step 5 &mdash; Grant repository Write access via team</h2>
+
+<div class="card warn">
+  <h3>Critical fix: merge denied on one repo but works on another <span class="tag warn">mosc-temp case</span></h3>
+  <p class="note">A user was on <span class="pill">giventa_team</span> and on the ruleset bypass list, but could merge to <code>release/*</code> in
+  <code>strapi-editorial-template</code> and <strong>not</strong> in <code>mosc-temp</code>.</p>
+  <strong>Root cause:</strong> Repository permissions differed per repo. Org default permission is <strong>Read</strong>.
+  <span class="pill">giventa_team</span> was not linked to every repository with Write/Maintain.
+  <table>
+    <tr><th>Repository</th><th>User effective permission (before fix)</th><th>Merge to release/*</th></tr>
+    <tr><td><code>strapi-editorial-template</code></td><td>Write / Maintain</td><td>Allowed</td></tr>
+    <tr><td><code>mosc-temp</code></td><td>Read only</td><td>Denied</td></tr>
+  </table>
+  <strong>Fix:</strong> Add <span class="pill">giventa_team</span> to <code>mosc-temp</code> (and all other dev repos) with <strong>Write</strong> or <strong>Maintain</strong>.
+</div>
+
+<h3>Web UI &mdash; assign repos to the team</h3>
+<ol>
+  <li>Open <a href="https://github.com/orgs/giventadeveloporg/teams/giventa_team">giventa_team &rarr; Repositories</a></li>
+  <li><strong>Add repository</strong></li>
+  <li>Add each repo the team should access:
+    <ul>
+      <li><code>mosc-temp</code></li>
+      <li><code>strapi-editorial-template</code></li>
+      <li><code>malayalees-us-site-boot</code></li>
+      <li><code>event-site-manager-batch-jobs</code></li>
+    </ul>
+  </li>
+  <li>Set role to <strong>Write</strong> or <strong>Maintain</strong> for each</li>
+</ol>
+
+<h3>GitHub CLI &mdash; add one repo to the team</h3>
+<pre><code># Write access (permission=push)
+gh api -X PUT orgs/giventadeveloporg/teams/giventa_team/repos/giventadeveloporg/mosc-temp \
+  -f permission=push
+
+# Maintain access
+gh api -X PUT orgs/giventadeveloporg/teams/giventa_team/repos/giventadeveloporg/mosc-temp \
+  -f permission=maintain</code></pre>
+
+<h3>Alternative &mdash; per-repo access</h3>
+<ol>
+  <li>Repo &rarr; <strong>Settings</strong> &rarr; <strong>Collaborators and teams</strong></li>
+  <li><strong>Add teams</strong> &rarr; select <span class="pill">giventa_team</span> &rarr; <strong>Write</strong> or <strong>Maintain</strong></li>
+</ol>
+
+<table>
+  <tr><th>Repository role</th><th>Push commits</th><th>Merge PRs</th><th>Manage repo settings</th></tr>
+  <tr><td>Read</td><td>No</td><td>No</td><td>No</td></tr>
+  <tr><td>Write</td><td>Yes</td><td>Yes (if rules allow)</td><td>No</td></tr>
+  <tr><td>Maintain</td><td>Yes</td><td>Yes</td><td>Limited</td></tr>
+  <tr><td>Admin</td><td>Yes</td><td>Yes</td><td>Full</td></tr>
+</table>
+
+<h2>&#x2705; Verification commands</h2>
+<p class="note">Replace <code>GITHUB_USERNAME</code> with the developer&rsquo;s GitHub login. Run after onboarding or when debugging access.</p>
+
+<pre><code># List org members
+gh api orgs/giventadeveloporg/members --paginate -q ".[].login"
+
+# List giventa_team members
+gh api orgs/giventadeveloporg/teams/giventa_team/members --paginate -q ".[].login"
+
+# List repos assigned to giventa_team (check permission field)
+gh api orgs/giventadeveloporg/teams/giventa_team/repos --paginate \
+  -q ".[] | \"\(.name)  permission=\(.permissions.push)\""
+
+# Check effective permission on a specific repo
+gh api repos/giventadeveloporg/mosc-temp/collaborators/GITHUB_USERNAME/permission
+gh api repos/giventadeveloporg/strapi-editorial-template/collaborators/GITHUB_USERNAME/permission
+
+# Expected for merge access: permission is "write" or "maintain" (not "read")
+
+# Inspect release ruleset bypass actors
+gh api repos/giventadeveloporg/mosc-temp/rulesets/13472925 \
+  -q ".bypass_actors"</code></pre>
+
+<h2>&#x1F6A8; Troubleshooting</h2>
+
+<div class="card err">
+  <h3>Cannot invite user &mdash; no seats available <span class="tag err">422</span></h3>
+  <strong>Fix:</strong> <a href="https://github.com/organizations/giventadeveloporg/settings/licensing">Add a seat</a> or remove unused member / pending invite.
+</div>
+
+<div class="card err">
+  <h3>Merge to <code>release/*</code> denied &mdash; &ldquo;don&rsquo;t have permission&rdquo; <span class="tag err">repo access</span></h3>
+  <strong>Check:</strong> <code>gh api repos/giventadeveloporg/REPO/collaborators/USERNAME/permission</code><br>
+  <strong>Fix:</strong> Add <span class="pill">giventa_team</span> to the repo with <strong>Write</strong> or <strong>Maintain</strong> (Step&nbsp;5).
+</div>
+
+<div class="card warn">
+  <h3>Can push feature branch but cannot merge PR to release <span class="tag warn">ruleset</span></h3>
+  <strong>Check:</strong> User or their team is on the <strong>Bypass list</strong> of <span class="pill">release_branch_ruleset</span>.<br>
+  <strong>Fix:</strong> Add <span class="pill">giventa_team</span> to bypass with <strong>Always allow</strong> (Step&nbsp;4).
+</div>
+
+<div class="card warn">
+  <h3>Works in one repo, fails in another <span class="tag warn">inconsistent team repos</span></h3>
+  <strong>Cause:</strong> Team is not linked to all repos, or repos were granted access individually and inconsistently.<br>
+  <strong>Fix:</strong> Add all org dev repos to <span class="pill">giventa_team</span> with the same Write/Maintain role.
+</div>
+
+<div class="card warn">
+  <h3>User not found when adding to team <span class="tag">pending invite</span></h3>
+  <strong>Cause:</strong> User has not accepted the organization invitation yet.<br>
+  <strong>Fix:</strong> Wait for acceptance, then add to team.
+</div>
+
+<table>
+  <tr><th>Symptom</th><th>Likely layer</th><th>Fix location</th></tr>
+  <tr><td>Cannot invite at all</td><td>Seat / billing</td><td><span class="pill">/settings/licensing</span></td></tr>
+  <tr><td>Cannot clone private repo</td><td>Repo access</td><td>Team &rarr; Repositories</td></tr>
+  <tr><td>Cannot push any branch</td><td>Repo access (Read only)</td><td>Team &rarr; Repositories &rarr; Write</td></tr>
+  <tr><td>Cannot merge to <code>release/*</code></td><td>Ruleset bypass and/or Read-only</td><td>Ruleset bypass + team repo Write</td></tr>
+  <tr><td>Merge button greyed out, checks failing</td><td>CI / status checks</td><td>Fix failing checks on the PR (not permissions)</td></tr>
+</table>
+
+<h2>&#x1F517; Quick links</h2>
+<ul>
+  <li><a href="https://github.com/orgs/giventadeveloporg/repositories">All repositories</a></li>
+  <li><a href="https://github.com/orgs/giventadeveloporg/teams/giventa_team">giventa_team</a></li>
+  <li><a href="https://github.com/organizations/giventadeveloporg/settings/members">Members &amp; invitations</a></li>
+  <li><a href="https://github.com/organizations/giventadeveloporg/settings/licensing">Licensing &amp; seats</a></li>
+  <li><a href="https://github.com/organizations/giventadeveloporg/settings/rules">Organization rulesets</a></li>
+  <li><a href="https://github.com/giventadeveloporg/mosc-temp/settings/access">mosc-temp access settings</a></li>
+  <li><a href="https://github.com/giventadeveloporg/strapi-editorial-template/settings/access">strapi-editorial-template access settings</a></li>
+</ul>
+
+<h2>&#x1F512; Security notes</h2>
+<ul>
+  <li>Do <strong>not</strong> store passwords, personal access tokens, or API keys in documentation or git.</li>
+  <li>Grant <strong>Owner</strong> org role only to trusted administrators.</li>
+  <li>Prefer team-based access over per-user repo assignments for consistency.</li>
+  <li>Review licensed seats periodically at the licensing settings page.</li>
+  <li>Ruleset bypass grants elevated ability on <code>release/*</code> &mdash; keep the bypass list limited to trusted teams.</li>
+</ul>
+
+</div>
+<footer>
+  <div class="wrap" style="padding:0;">
+    giventadeveloporg GitHub configuration guide &middot; seats, members, giventa_team, release_branch_ruleset, repository access &middot; last updated: June 2026
+  </div>
+</footer>
+</body>
+</html>

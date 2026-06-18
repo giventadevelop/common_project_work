@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GitHub Organization &mdash; Add Seat &amp; Invite Member</title>
+<style>
+  :root{
+    --bg:#0d1117;--panel:#161b22;--border:#30363d;--text:#e6edf3;--muted:#8b949e;
+    --accent:#58a6ff;--ok:#3fb950;--warn:#d29922;--err:#f85149;--code:#1c2430;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.6;padding:0 0 60px;}
+  header{background:linear-gradient(135deg,#1f6feb22,#0d1117);border-bottom:1px solid var(--border);
+    padding:36px 40px 26px;}
+  h1{margin:0 0 6px;font-size:1.8em;}
+  .sub{color:var(--muted);font-size:1.0em;}
+  .wrap{max-width:980px;margin:0 auto;padding:0 40px;}
+  h2{margin:34px 0 10px;font-size:1.3em;border-bottom:1px solid var(--border);padding-bottom:6px;}
+  h3{margin:22px 0 6px;font-size:1.08em;color:var(--accent);}
+  p.note{color:var(--muted);margin:6px 0 14px;}
+  code{font-family:'Cascadia Code',Consolas,monospace;font-size:0.86em;background:var(--code);
+    border:1px solid var(--border);border-radius:5px;padding:1px 6px;color:#9ecbff;}
+  pre{background:var(--code);border:1px solid var(--border);border-radius:8px;padding:14px 16px;
+    overflow-x:auto;font-family:'Cascadia Code',Consolas,monospace;font-size:0.84em;color:#d6deeb;}
+  pre code{background:none;border:none;padding:0;color:inherit;}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin:14px 0;}
+  .card.err{border-left:3px solid var(--err);}
+  .card.warn{border-left:3px solid var(--warn);}
+  .card.ok{border-left:3px solid var(--ok);}
+  .pill{display:inline-block;background:#21262d;border:1px solid var(--border);border-radius:6px;
+    padding:1px 8px;font-family:monospace;font-size:0.82em;color:var(--accent);}
+  ol,ul{margin:.4rem 0 .6rem 1.2rem;}
+  li{margin:.3rem 0;}
+  table{width:100%;border-collapse:collapse;margin:12px 0;background:var(--panel);
+    border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+  th{text-align:left;background:#1c2430;color:var(--accent);font-size:0.82em;text-transform:uppercase;
+    letter-spacing:.04em;padding:10px 14px;border-bottom:1px solid var(--border);}
+  td{padding:10px 14px;border-bottom:1px solid var(--border);vertical-align:top;font-size:0.92em;}
+  tr:last-child td{border-bottom:none;}
+  .tag{display:inline-block;font-size:0.7em;padding:1px 7px;border-radius:20px;border:1px solid var(--border);
+    color:var(--muted);text-transform:uppercase;letter-spacing:.04em;vertical-align:middle;}
+  .tag.err{color:var(--err);border-color:#f8514955;}
+  .tag.ok{color:var(--ok);border-color:#3fb95055;}
+  strong.k{color:var(--warn);}
+  footer{max-width:980px;margin:36px auto 0;padding:16px 40px 0;border-top:1px solid var(--border);
+    color:var(--muted);font-size:0.84em;}
+  a{color:var(--accent);text-decoration:none;}
+  a:hover{text-decoration:underline;}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap" style="padding:0;">
+    <h1>&#x1F465; GitHub Organization &mdash; Add Seat &amp; Invite Member</h1>
+    <div class="sub">Playbook for adding a licensed seat and inviting a new developer to a GitHub Team or Enterprise organization. No credentials or secrets stored here.</div>
+  </div>
+</header>
+<div class="wrap">
+
+<div class="card ok">
+  <strong>Full guide available:</strong> See <a href="github-org-configuration-guide.html">github-org-configuration-guide.html</a> for the complete
+  giventadeveloporg playbook &mdash; teams, <code>release_branch_ruleset</code> bypass, repository Write access, and troubleshooting (including the mosc-temp fix).
+</div>
+
+<div class="card warn">
+  <strong>Prerequisites:</strong> You must be an <strong>organization owner</strong> (or have permission to manage billing and members).
+  The invitee needs a GitHub account linked to the email address you invite. On paid plans, each member who accesses
+  <strong>private</strong> repositories consumes one <strong>seat</strong>.
+</div>
+
+<h2>&#x1F4CC; Standard Operating Procedure</h2>
+<ol>
+  <li><strong>Check seat availability</strong> &mdash; if all seats are used, add a seat before inviting (see below).</li>
+  <li><strong>Invite the user</strong> via the GitHub web UI or <code>gh</code> CLI.</li>
+  <li><strong>Grant repository access</strong> with <strong>Write</strong> or <strong>Maintain</strong> so they can commit and merge.</li>
+  <li><strong>Confirm branch protection</strong> rules allow merges to protected branches (e.g.&nbsp;<code>main</code>).</li>
+  <li><strong>Invitee accepts</strong> the email invitation and signs in to GitHub.</li>
+</ol>
+
+<h2>Step 1 &mdash; Add a seat (licensing)</h2>
+<p class="note">Required on GitHub Team / Enterprise when you see <em>&ldquo;No seats are available to invite this user.&rdquo;</em></p>
+
+<ol>
+  <li>Sign in to GitHub as an organization owner.</li>
+  <li>Open organization <strong>Settings</strong> &rarr; <strong>Licensing</strong> (or go directly to):
+    <br><span class="pill">https://github.com/organizations/YOUR_ORG/settings/licensing</span></li>
+  <li>Review <strong>Seats used</strong> vs <strong>Seats purchased</strong>.</li>
+  <li>Click <strong>Add seats</strong> (or equivalent) and purchase / allocate one additional seat.</li>
+  <li>Confirm billing updated before sending a new invitation.</li>
+</ol>
+
+<div class="card ok">
+  <h3>Alternative: free a seat without purchasing <span class="tag ok">optional</span></h3>
+  <p class="note">If you do not want to buy another seat, remove an inactive member or cancel a pending invitation first.</p>
+  <ul>
+    <li>Members: <span class="pill">https://github.com/organizations/YOUR_ORG/people</span></li>
+    <li>Pending invites: <span class="pill">https://github.com/organizations/YOUR_ORG/settings/members</span></li>
+  </ul>
+</div>
+
+<h2>Step 2 &mdash; Invite a new member</h2>
+
+<h3>Option A &mdash; GitHub web UI</h3>
+<ol>
+  <li>Go to <span class="pill">https://github.com/organizations/YOUR_ORG/settings/members</span></li>
+  <li>Click <strong>Invite member</strong>.</li>
+  <li>Enter the user&rsquo;s email (e.g.&nbsp;<code>new-developer@example.com</code>) or GitHub username.</li>
+  <li>Choose role: <strong>Member</strong> (typical for developers) or <strong>Owner</strong> (full org admin &mdash; use sparingly).</li>
+  <li>Send the invitation.</li>
+</ol>
+
+<h3>Option B &mdash; GitHub CLI (<code>gh</code>)</h3>
+<p class="note">Requires <code>gh auth login</code> as an org owner. Replace placeholders with your values.</p>
+<pre><code>gh api orgs/YOUR_ORG/invitations \
+  -f email=new-developer@example.com \
+  -f role=direct_member</code></pre>
+
+<p class="note">A successful response includes <code>"email"</code>, <code>"role": "direct_member"</code>, and <code>"failed_at": null</code>. The invitee receives an email to accept.</p>
+
+<div class="card ok">
+  <h3>Expected success response (example shape) <span class="tag ok">reference</span></h3>
+<pre><code>{
+  "email": "new-developer@example.com",
+  "role": "direct_member",
+  "created_at": "2026-06-16T00:10:51.000-04:00",
+  "failed_at": null,
+  "failed_reason": null,
+  "invitation_source": "member"
+}</code></pre>
+</div>
+
+<h2>Step 3 &mdash; Grant commit &amp; merge permissions</h2>
+<p class="note">Organization membership alone does <strong>not</strong> grant access to private repositories. Assign repo or team permissions separately.</p>
+
+<h3>Per repository (quick)</h3>
+<ol>
+  <li>Open the repo &rarr; <strong>Settings</strong> &rarr; <strong>Collaborators and teams</strong>.</li>
+  <li>Add the user (or a team they belong to).</li>
+  <li>Set role to <strong>Write</strong> or <strong>Maintain</strong>.</li>
+</ol>
+
+<h3>Via a team (recommended for multiple repos)</h3>
+<ol>
+  <li>Organization &rarr; <strong>Teams</strong> &rarr; create or select a team (e.g.&nbsp;<code>developers</code>).</li>
+  <li>Add the new member to the team.</li>
+  <li>On the team page &rarr; <strong>Repositories</strong> &rarr; add repos with <strong>Write</strong> or <strong>Maintain</strong>.</li>
+</ol>
+
+<table>
+  <tr><th>Repository role</th><th>Can commit?</th><th>Can merge PRs?</th></tr>
+  <tr><td>Read</td><td>No (clone/pull only)</td><td>No</td></tr>
+  <tr><td>Write</td><td>Yes</td><td>Yes (if branch rules allow)</td></tr>
+  <tr><td>Maintain</td><td>Yes</td><td>Yes + limited repo management</td></tr>
+  <tr><td>Admin</td><td>Yes</td><td>Yes + full repo settings</td></tr>
+</table>
+
+<h2>Step 4 &mdash; Branch protection (if merges are blocked)</h2>
+<p class="note">If <code>main</code> (or default branch) is protected, verify the new member can merge.</p>
+<ol>
+  <li>Repo &rarr; <strong>Settings</strong> &rarr; <strong>Branches</strong> &rarr; edit the protection rule.</li>
+  <li>Ensure <strong>Write</strong> / <strong>Maintain</strong> users or their team are allowed to push or merge pull requests.</li>
+</ol>
+
+<h2>&#x1F6A8; Known errors &amp; fixes</h2>
+
+<div class="card err">
+  <h3>&ldquo;No seats are available to invite this user&rdquo; <span class="tag err">HTTP 422</span></h3>
+  <p class="note">All purchased seats are in use (active members and sometimes pending invitations).</p>
+  <strong>Fix:</strong> Add a seat at <span class="pill">/organizations/YOUR_ORG/settings/licensing</span>, or remove an unused member / cancel a pending invite, then retry.
+<pre><code>gh api orgs/YOUR_ORG/invitations \
+  -f email=new-developer@example.com \
+  -f role=direct_member</code></pre>
+</div>
+
+<div class="card warn">
+  <h3>Invite sent but user cannot push or merge <span class="tag">permissions</span></h3>
+  <p class="note">They accepted the org invite but have no repository role yet, or branch protection blocks merges.</p>
+  <strong>Fix:</strong> Grant <strong>Write</strong> or <strong>Maintain</strong> on the target repo(s) or via a team. Check branch protection on <code>main</code>.
+</div>
+
+<h2>&#x1F527; Useful CLI commands (diagnostics)</h2>
+<p class="note">Replace <code>YOUR_ORG</code> and usernames. Do not commit tokens or PATs to documentation.</p>
+
+<pre><code># List current org members
+gh api orgs/YOUR_ORG/members --paginate -q ".[].login"
+
+# List pending invitations
+gh api orgs/YOUR_ORG/invitations
+
+# Cancel a pending invitation (use id from invitations list)
+gh api -X DELETE orgs/YOUR_ORG/invitations/INVITATION_ID
+
+# Remove a member (use GitHub username, not email)
+gh api -X DELETE orgs/YOUR_ORG/members/USERNAME</code></pre>
+
+<h2>&#x1F464; What the new member must do</h2>
+<ul>
+  <li>Have (or create) a GitHub account using the invited email address.</li>
+  <li>Accept the organization invitation from email or from <strong>https://github.com/notifications</strong>.</li>
+  <li>Configure Git access (SSH key or HTTPS with a personal access token).</li>
+  <li>Clone repositories they were granted access to.</li>
+</ul>
+
+<h2>&#x1F512; Security notes</h2>
+<ul>
+  <li>Do <strong>not</strong> store passwords, personal access tokens, or API keys in this document or in git.</li>
+  <li>Grant <strong>Owner</strong> only to trusted administrators.</li>
+  <li>Prefer team-based access over adding users to many repos individually.</li>
+  <li>Review <span class="pill">/organizations/YOUR_ORG/settings/billing</span> periodically for unused seats.</li>
+</ul>
+
+</div>
+<footer>
+  <div class="wrap" style="padding:0;">
+    GitHub org member onboarding &middot; generic playbook &middot; last updated: June 2026 &middot;
+  </div>
+</footer>
+</body>
+</html>
