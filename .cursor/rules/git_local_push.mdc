@@ -63,5 +63,6 @@ git push -u origin payment-options
   - Push to a feature branch, then open a PR on GitHub.
 
 - **References**
+  - **Core trio repos** (mosc-temp, batch-jobs, event-site-manager-service): [git_commit_push_core_repos.mdc](mdc:.cursor/rules/git_commit_push_core_repos.mdc)
   - After adding or updating rules, verify consistency with [cursor_rules.mdc](mdc:.cursor/rules/cursor_rules.mdc).
 
