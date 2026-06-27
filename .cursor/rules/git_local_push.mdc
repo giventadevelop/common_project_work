@@ -57,6 +57,41 @@ git push -u origin payment-options
   - If you see `The token '&&' is not a valid statement separator`, split combined commands into separate lines.
   - Normalize line endings warning (LF→CRLF) is informational. Commit proceeds unless you configured otherwise.
 
+- **SSL certificate errors on `git push` / `git fetch` (Windows)**
+  - **Symptom** (seen repeatedly on `mosc-temp` and other HTTPS remotes):
+    ```
+    fatal: unable to access 'https://github.com/...': SSL certificate problem: unable to get local issuer certificate
+    ```
+  - **Cause:** Git for Windows cannot validate the HTTPS server certificate chain (missing/intermediate CA, corporate SSL inspection, or outdated CA bundle). Other repos may push fine if they use different network paths or were cached earlier.
+  - **Temporary workaround (current session only — use only to unblock a push):**
+    ```powershell
+    cd F:\project_workspace\<repo>
+    $env:GIT_SSL_NO_VERIFY = "true"
+    git push
+    Remove-Item Env:GIT_SSL_NO_VERIFY
+    ```
+    - **Do not** set `git config http.sslVerify false` globally; that disables verification for every repo permanently.
+    - **Do not** leave `GIT_SSL_NO_VERIFY` set in your user or system environment.
+  - **Proper fix (preferred — pick one):**
+    1. **Update Git for Windows** — reinstall or upgrade from [https://git-scm.com/download/win](https://git-scm.com/download/win) so the bundled Mozilla CA bundle is current.
+    2. **Corporate proxy / SSL inspection** — ask IT for the root/intermediate CA certificate, then point Git at it:
+       ```powershell
+       git config --global http.sslCAInfo "C:/path/to/corporate-ca-bundle.pem"
+       ```
+       (Use a repo-local or user-level config only; never commit the CA file into application repos unless policy requires it.)
+    3. **Switch the remote to SSH** (avoids HTTPS certificate validation for Git operations):
+       ```powershell
+       git remote -v
+       git remote set-url origin git@github.com:giventadeveloporg/mosc-temp.git
+       git push
+       ```
+       Requires an SSH key added to GitHub ([GitHub SSH docs](https://docs.github.com/en/authentication/connecting-to-github-with-ssh)).
+  - **Verify after fix:**
+    ```powershell
+    git ls-remote origin HEAD
+    ```
+    Should list the remote `HEAD` commit without SSL errors.
+
 - **Best practices**
   - Use conventional commit messages when possible (e.g., `feat`, `fix`, `chore`).
   - Keep commits focused and scoped; avoid bundling unrelated changes.
@@ -65,4 +100,3 @@ git push -u origin payment-options
 - **References**
   - **Core trio repos** (mosc-temp, batch-jobs, event-site-manager-service): [git_commit_push_core_repos.mdc](mdc:.cursor/rules/git_commit_push_core_repos.mdc)
   - After adding or updating rules, verify consistency with [cursor_rules.mdc](mdc:.cursor/rules/cursor_rules.mdc).
-
