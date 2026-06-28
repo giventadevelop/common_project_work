@@ -1,0 +1,217 @@
+---
+description: PostgreSQL export/import via database_export_import_refresh.bat — local Docker, VPC dev RDS, and VPC prod RDS (event_site_manager_db)
+globs: documentation/database_export_import/**/*
+alwaysApply: false
+---
+
+# Database Export, Reorder, and Import (Local + VPC Dev/Prod)
+
+## **Overview**
+
+Use the **`database_export_import_refresh.bat`** workflow to export `event_site_manager_db` from **local Docker Postgres**, prepare ordered INSERT SQL (with optional production Clerk user IDs), then apply **schema rebuild + data import + sequence sync** to:
+
+- **Local Docker** (dev Clerk IDs, renumbered PKs)
+- **VPC dev RDS** (`event-site-manager-dev-postgres...`, via `mosc-temp\.env.local`)
+- **VPC prod RDS** (`event-site-manager-prod-postgres...`, credentials from AWS Secrets Manager)
+
+**Canonical SQL/scripts** live under **`mosc-temp`** (`code_html_template/SQLS/`). This repo holds a **mirror copy** of the batch file and HTML runbook for reference.
+
+**Not in scope:** Liturgical calendar **readings** (`liturgy-days`) are in **Strapi**, not this Postgres export. Postgres includes `event_calendar_entry`, `official_document_category` (e.g. Panjangom/calendars), and the rest of `event_site_manager_db`.
+
+---
+
+## **Documentation and batch file locations**
+
+| Location | Path |
+|----------|------|
+| **This repo (mirror)** | [documentation/database_export_import/DATABASE_EXPORT_IMPORT_GUIDE.html](mdc:documentation/database_export_import/DATABASE_EXPORT_IMPORT_GUIDE.html) |
+| **This repo (batch)** | [documentation/database_export_import/batch_files/database_export_import_refresh.bat](mdc:documentation/database_export_import/batch_files/database_export_import_refresh.bat) |
+| **Source of truth (mosc-temp)** | `mosc-temp/documentation/database_export_import/DATABASE_EXPORT_IMPORT_GUIDE.html` |
+| **Source batch (mosc-temp)** | `mosc-temp/code_html_template/batch_files/database_export_import_refresh.bat` |
+
+Related: [SEQUENCE_ID_ALIGNMENT_GUIDE.html](mdc:documentation/database_export_import/SEQUENCE_ID_ALIGNMENT_GUIDE.html), [aws-environment-deployment-guide.html](mdc:documentation/aws-infrastructure/aws-environment-deployment-guide.html) (RDS hostnames).
+
+---
+
+## **Prerequisites**
+
+- **Docker Desktop** running with local Postgres container (e.g. `event_site_manager_db-postgresql-1`, user `event_site_admin`, DB `event_site_manager_db`)
+- **Node.js** on `PATH` (reorder + PROD user-ID scripts)
+- **`WORKSPACE_ROOT`** = parent folder containing **`mosc-temp`** and **`event-site-manager-service`** (typically `F:\project_workspace`)
+- **Remote dev:** `mosc-temp\.env.local` with `RDS_ENDPOINT`, `DB_NAME`, `DB_USERNAME`, `DB_PASSWORD` (dev RDS host)
+- **Remote prod:** temporarily point remote config at prod RDS (see **Prod RDS** below) or use `database_target.local.env` fallback when `.env.local` is absent
+- **`psql`** on PATH **or** Docker (batch uses `postgres:16` image for remote `/REMOTE` steps)
+
+---
+
+## **⚠️ Destructive operation**
+
+Steps **5–7** **drop and recreate schema**, import all data, and reset sequences on the **target** database. Always confirm you are targeting the correct environment.
+
+| Target | Confirmation prompt |
+|--------|---------------------|
+| Local Docker | Type `Y` or `YES` (skipped with `/FORCE`) |
+| `/REMOTE` (dev or prod RDS) | Type **`PRODUCTION`** (required even with `/FORCE`) |
+
+---
+
+## **Standard three-target workflow (verified June 2026)**
+
+Replace `CONTAINER_ID` with `docker ps` Postgres container ID (e.g. `143972c3c40c`).
+
+### **1. Local Docker — full export + import**
+
+Runs steps 0–7: `pg_dump` → reorder → PROD SQL copy → patch → schema → import (renumbered dev file) → sequence sync.
+
+```powershell
+F:\project_workspace\application-deployments\documentation\database_export_import\batch_files\database_export_import_refresh.bat F:\project_workspace CONTAINER_ID /FORCE
+```
+
+Equivalent using mosc-temp path:
+
+```powershell
+F:\project_workspace\mosc-temp\code_html_template\batch_files\database_export_import_refresh.bat F:\project_workspace CONTAINER_ID /FORCE
+```
+
+**Import file (local, no `/PROD`):** `mosc-temp\code_html_template\SQLS\sequence_fix_inserts\corrected_event_media_inserts.renumbered.sql` (low local IDs).
+
+### **2. VPC dev RDS — reuse prepared SQL**
+
+Requires `mosc-temp\.env.local` → **dev** host (`event-site-manager-dev-postgres.cwffi3ch4r75.us-east-1.rds.amazonaws.com`).
+
+`/REMOTE` auto-enables `/PROD` → imports `corrected_event_media_inserts.ordered_PROD.sql`.
+
+```powershell
+cmd /c "echo PRODUCTION| F:\project_workspace\mosc-temp\code_html_template\batch_files\database_export_import_refresh.bat F:\project_workspace /SKIP-EXPORT /REMOTE /FORCE"
+```
+
+### **3. VPC prod RDS — reuse prepared SQL**
+
+`.env.local` normally points at **dev**. For **prod**, temporarily swap RDS settings, run import, **restore dev settings**.
+
+```powershell
+# 1) Backup .env.local
+Copy-Item F:\project_workspace\mosc-temp\.env.local F:\project_workspace\mosc-temp\.env.local.dev-backup-import -Force
+
+# 2) Set prod RDS_ENDPOINT / DB_* from Secrets Manager (do not commit passwords)
+$secretJson = aws secretsmanager get-secret-value --secret-id "event-site-manager/prod/rds/postgres" --region us-east-1 --query SecretString --output text | ConvertFrom-Json
+# Update RDS_ENDPOINT, DB_USERNAME, DB_PASSWORD, DB_NAME in .env.local (PowerShell line replace)
+
+# 3) Import
+cmd /c "echo PRODUCTION| F:\project_workspace\mosc-temp\code_html_template\batch_files\database_export_import_refresh.bat F:\project_workspace /SKIP-EXPORT /REMOTE /FORCE"
+
+# 4) Restore dev .env.local
+Copy-Item F:\project_workspace\mosc-temp\.env.local.dev-backup-import F:\project_workspace\mosc-temp\.env.local -Force
+Remove-Item F:\project_workspace\mosc-temp\.env.local.dev-backup-import -Force
+```
+
+**Alternative:** Rename `.env.local` temporarily and create `code_html_template/batch_files/database_target.local.env` from [database_target.local.env.example](mdc:documentation/database_export_import/batch_files/database_target.local.env.example) with prod host (batch reads fallback only when `.env.local` is missing).
+
+---
+
+## **Batch flags reference**
+
+| Flag | Purpose |
+|------|---------|
+| `WORKSPACE_ROOT` | Required — e.g. `F:\project_workspace` |
+| `CONTAINER_ID` | Local Docker Postgres for export (auto-detect if omitted) |
+| `/FORCE` | Skip local `Y/YES` prompt (does **not** skip remote `PRODUCTION`) |
+| `/PROD` | Import `corrected_event_media_inserts.ordered_PROD.sql` |
+| `/SKIP-EXPORT` | Skip steps 1–4; reuse existing `export.sql` / ordered / PROD files |
+| `/REMOTE` | Steps 5–7 on RDS from `.env.local` (auto `/PROD`) |
+| `/SCHEMA-ONLY` | Schema apply only (step 5) |
+| `/DATA-ONLY` | Skip schema rebuild; import + sequences only |
+| `/IMPORT-FILE "path"` | Custom SQL import (strict `ON_ERROR_STOP=1`) |
+| `/REGEN-MOSC` | Regenerate `mosc_malankara_orthodox_2` tenant SQL |
+| `/IMPORT-DUP-ONLY` | Fast MOSC tenant refresh via `mosc_dup_only.sql` |
+
+Help: `database_export_import_refresh.bat --help`
+
+---
+
+## **Pipeline steps (summary)**
+
+| Step | Action | Output / target |
+|------|--------|-----------------|
+| 0 | Resolve Docker container | Local export source |
+| 1 | `pg_dump --data-only --column-inserts` | `mosc-temp/code_html_template/SQLS/export.sql` |
+| 2 | `node reorder_sql_inserts_final.cjs` | `corrected_event_media_inserts.ordered.sql` |
+| 2b | `renumber_sql_insert_ids.cjs` + mojibake fix | `sequence_fix_inserts/corrected_event_media_inserts.renumbered.sql` |
+| 3 | `node scripts/replace-user-profile-ids-in-sql.mjs` | `corrected_event_media_inserts.ordered_PROD.sql` |
+| 4 | Comment `pg_dump` header lines in import file | Patched SQL |
+| 5 | Apply `Latest_Schema_Post__Blob_Claude_12.sql` | Target DB schema |
+| 6 | Import ordered / PROD / custom SQL | Target DB data |
+| 7 | `sync_all_table_sequences.sql` + Spring Batch sync | Sequences |
+
+---
+
+## **Remote config keys (`mosc-temp\.env.local`)**
+
+```env
+RDS_ENDPOINT=event-site-manager-dev-postgres.cwffi3ch4r75.us-east-1.rds.amazonaws.com
+DB_NAME=event_site_manager_db
+DB_USERNAME=postgres
+DB_PASSWORD=<secret>
+# Optional: DB_PORT=5432, DB_SSLMODE=require
+```
+
+Prod host: `event-site-manager-prod-postgres.cwffi3ch4r75.us-east-1.rds.amazonaws.com` (Secrets Manager: `event-site-manager/prod/rds/postgres`).
+
+---
+
+## **Logging**
+
+Save batch output for audits:
+
+```powershell
+cmd /c "...database_export_import_refresh.bat ..." 2>&1 | Tee-Object -FilePath "F:\project_workspace\mosc-temp\logs\db-import-<target>-$(Get-Date -Format 'yyyyMMdd-HHmmss').log"
+```
+
+---
+
+## **ECS / application redeploy**
+
+Database-only refresh **does not require ECS redeploy** — backend reads RDS directly. Redeploy ECS only when **application code or images** changed.
+
+---
+
+## **DO / DON'T**
+
+### **DO:**
+- ✅ Use `WORKSPACE_ROOT=F:\project_workspace` so batch finds `mosc-temp\code_html_template\SQLS`
+- ✅ Run **local export once**, then `/SKIP-EXPORT /REMOTE` for dev and prod
+- ✅ Type **`PRODUCTION`** for any `/REMOTE` run
+- ✅ Restore `.env.local` to **dev** after prod import
+- ✅ Verify calendar-related counts after local import if needed:
+  ```powershell
+  docker exec CONTAINER_ID psql -U event_site_admin -d event_site_manager_db -c "SELECT COUNT(*) FROM event_calendar_entry;"
+  ```
+
+### **DON'T:**
+- ❌ Commit `.env.local`, `database_target.local.env`, or logs with passwords
+- ❌ Run `/REMOTE` against prod without explicit intent and backup plan
+- ❌ Assume liturgical **readings** are included — they are in **Strapi**
+- ❌ Expect `/FORCE` to bypass remote **`PRODUCTION`** confirmation
+
+---
+
+## **MOSC tenant-only paths**
+
+See §1c in [DATABASE_EXPORT_IMPORT_GUIDE.html](mdc:documentation/database_export_import/DATABASE_EXPORT_IMPORT_GUIDE.html):
+
+```powershell
+# Full MOSC tenant block
+... /REGEN-MOSC /SKIP-EXPORT /IMPORT-FILE "...\corrected_event_media_inserts.ordered.mosc_malankara_orthodox_2.sql" /FORCE
+
+# Fast dup-only refresh (no schema rebuild)
+... /REGEN-MOSC /SKIP-EXPORT /DATA-ONLY /IMPORT-DUP-ONLY /FORCE
+```
+
+---
+
+## **References**
+
+- Full HTML runbook: [documentation/database_export_import/DATABASE_EXPORT_IMPORT_GUIDE.html](mdc:documentation/database_export_import/DATABASE_EXPORT_IMPORT_GUIDE.html)
+- Sequence alignment: [documentation/database_export_import/SEQUENCE_ID_ALIGNMENT_GUIDE.html](mdc:documentation/database_export_import/SEQUENCE_ID_ALIGNMENT_GUIDE.html)
+- AWS RDS inventory: [documentation/aws-infrastructure/aws-environment-deployment-guide.html](mdc:documentation/aws-infrastructure/aws-environment-deployment-guide.html)
+- Remote psql helper: [documentation/database_export_import/batch_files/run_remote_psql.ps1](mdc:documentation/database_export_import/batch_files/run_remote_psql.ps1)
