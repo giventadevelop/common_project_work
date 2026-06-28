@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="GitHub development environment setup: Git Bash, PAT authentication, clone, push, Eclipse import, and GitHub CLI workflows. No secrets stored in this document.">
+<title>GitHub Development Environment Setup</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px 24px 60px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    line-height: 1.6;
+    color: #333;
+    background: #fafbfc;
+  }
+  h1 {
+    font-size: 2.5em;
+    border-bottom: 3px solid #0066cc;
+    padding-bottom: 12px;
+    margin: 0 0 8px;
+  }
+  h2 {
+    font-size: 1.8em;
+    border-left: 4px solid #0066cc;
+    padding-left: 15px;
+    margin: 36px 0 12px;
+  }
+  h3 { font-size: 1.4em; color: #333; margin: 22px 0 8px; }
+  h4 { font-size: 1.2em; color: #555; margin: 16px 0 6px; }
+  p { margin: 8px 0 14px; }
+  a { color: #0066cc; }
+  a:hover { text-decoration: underline; }
+
+  .page-intro { color: #555; margin-bottom: 24px; }
+
+  .toc {
+    background: linear-gradient(135deg, #e8f4f8 0%, #d1e7f0 100%);
+    border-left: 4px solid #0066cc;
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin: 24px 0;
+    box-shadow: 0 2px 8px rgba(0, 102, 204, 0.1);
+  }
+  .toc h2 { border: none; padding: 0; margin: 0 0 12px; font-size: 1.3em; }
+  .toc ul { margin: 0; padding-left: 1.4rem; }
+  .toc li { margin: 6px 0; }
+
+  .info-box {
+    background: #d1ecf1;
+    border: 1px solid #0c5460;
+    border-left: 4px solid #0c5460;
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 16px 0;
+  }
+  .warning-box {
+    background: #fff3cd;
+    border: 1px solid #ffc107;
+    border-left: 4px solid #ffc107;
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 16px 0;
+  }
+  .success-box {
+    background: #d4edda;
+    border: 1px solid #28a745;
+    border-left: 4px solid #28a745;
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 16px 0;
+  }
+  .error-box {
+    background: #f8d7da;
+    border: 1px solid #dc3545;
+    border-left: 4px solid #dc3545;
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 16px 0;
+  }
+
+  .info-box code, .warning-box code, .success-box code, .error-box code,
+  .section-intro code, .parameters-list code {
+    background-color: #e8f4f8;
+    color: #0d3b66;
+    padding: 3px 8px;
+    border-radius: 3px;
+    border: 1px solid #b8d4e3;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9em;
+  }
+
+  .section-container {
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    margin: 24px 0;
+    overflow: hidden;
+    border: 1px solid #dde4ea;
+  }
+  .section-header {
+    background: linear-gradient(135deg, #0066cc 0%, #0052a3 100%);
+    color: #fff;
+    padding: 14px 20px;
+    font-size: 1.15em;
+    font-weight: bold;
+  }
+  .section-header.setup { background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%); }
+  .section-header.usage { background: linear-gradient(135deg, #9c27b0 0%, #7b1fa2 100%); }
+  .section-header.parameters { background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); }
+  .section-header.output { background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%); }
+  .section-body { padding: 20px 24px; }
+
+  .section-intro {
+    background: linear-gradient(135deg, #e8f4f8 0%, #d1e7f0 100%);
+    border-left: 4px solid #0066cc;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 16px 0;
+    box-shadow: 0 2px 8px rgba(0, 102, 204, 0.1);
+  }
+
+  .parameters-list {
+    background: linear-gradient(135deg, #fff5e6 0%, #ffe6cc 100%);
+    border-left: 4px solid #ff9800;
+    border-radius: 8px;
+    padding: 15px 20px;
+    margin: 15px 0;
+  }
+  .parameters-list strong { color: #ff9800; }
+
+  .script-name {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 5px;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    display: inline-block;
+    box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+  }
+
+  pre, .code-block {
+    background: #e8f4f8;
+    color: #0d3b66;
+    border: 1px solid #b8d4e3;
+    border-radius: 8px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    font-family: 'Courier New', monospace;
+    font-size: 0.92em;
+    margin: 12px 0;
+  }
+  pre code { background: none; border: none; padding: 0; color: inherit; }
+
+  code {
+    background-color: #e8f4f8;
+    color: #0d3b66;
+    padding: 2px 6px;
+    border-radius: 3px;
+    border: 1px solid #b8d4e3;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9em;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    background: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  th, td { border: 1px solid #ddd; padding: 12px 14px; text-align: left; vertical-align: top; }
+  th {
+    background: linear-gradient(135deg, #0066cc 0%, #0052a3 100%);
+    color: white;
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 0.85em;
+    letter-spacing: 0.5px;
+  }
+  tr:nth-child(even) { background-color: #f8f9fa; }
+  tr:hover { background-color: #e3f2fd; transition: background-color 0.2s ease; }
+  td code {
+    background-color: #e8f4f8;
+    color: #0d3b66;
+    padding: 3px 8px;
+    border-radius: 3px;
+    border: 1px solid #b8d4e3;
+  }
+
+  ol, ul { margin: 8px 0 14px 1.4rem; }
+  li { margin: 6px 0; }
+
+  .command-block {
+    border-radius: 8px;
+    margin: 16px 0;
+    overflow: hidden;
+    border: 2px solid;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  .command-block.setup {
+    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+    border-color: #2196f3;
+  }
+  .command-block.verify {
+    background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+    border-color: #4caf50;
+  }
+  .command-block.expedite {
+    background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
+    border-color: #9c27b0;
+  }
+  .command-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+    background: rgba(255,255,255,0.4);
+    border-bottom: 1px solid rgba(0,0,0,0.08);
+  }
+  .command-type { font-weight: bold; font-size: 0.9em; color: #333; }
+  .command-header-buttons { display: flex; gap: 8px; }
+  .copy-button, .copy-button-template {
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85em;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    color: white;
+  }
+  .copy-button { background-color: #0066cc; }
+  .copy-button:hover { background-color: #0052a3; transform: translateY(-1px); }
+  .copy-button-template { background-color: #6c757d; }
+  .copy-button-template:hover { background-color: #5a6268; transform: translateY(-1px); }
+  .copy-button.copied, .copy-button-template.copied { background-color: #28a745; }
+
+  .command-parameters {
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.5);
+    border-bottom: 1px solid rgba(0,0,0,0.1);
+  }
+  .command-parameters h5 { margin: 0 0 12px; font-size: 0.9em; color: #333; }
+  .parameter-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+  .parameter-group.single { grid-template-columns: 1fr; }
+  .parameter-input { display: flex; flex-direction: column; gap: 4px; }
+  .parameter-input label { font-size: 0.8em; color: #555; font-weight: 600; }
+  .parameter-input input {
+    padding: 8px 12px;
+    border: 2px solid #ddd;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9em;
+  }
+  .parameter-input input:focus {
+    outline: none;
+    border-color: #0066cc;
+    box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+  }
+
+  .command-content {
+    padding: 12px 15px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9em;
+    color: #0d3b66;
+    word-break: break-all;
+  }
+  .command-single-line {
+    padding: 12px 15px;
+    background: #e8f4f8;
+    border-top: 1px solid #b8d4e3;
+  }
+  .command-single-line-label { font-size: 0.75em; color: #666; margin-bottom: 6px; font-weight: bold; }
+  .command-single-line code {
+    display: block;
+    background: transparent;
+    border: none;
+    padding: 0;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  footer {
+    margin-top: 48px;
+    padding-top: 20px;
+    border-top: 2px solid #0066cc;
+    color: #666;
+    font-size: 0.9em;
+  }
+
+  @media (max-width: 768px) {
+    body { padding: 12px; }
+    h1 { font-size: 1.8em; }
+    .parameter-group { grid-template-columns: 1fr; }
+    .command-header { flex-direction: column; align-items: flex-start; gap: 8px; }
+  }
+</style>
+</head>
+<body>
+
+<h1>GitHub Development Environment Setup</h1>
+<p class="page-intro">
+  Playbook distilled from the local <code class="script-name">github-details.txt</code> notes.
+  Covers Git Bash, Personal Access Tokens (PAT), cloning, pushing from a new or existing project,
+  Eclipse import, and GitHub CLI. <strong>No passwords, tokens, or account secrets are stored in this file.</strong>
+</p>
+
+<div class="warning-box">
+  <strong>Security:</strong> Store GitHub usernames, passwords, and PAT values only in a password manager or
+  Windows environment variables on your machine — never in git-tracked files. If credentials were ever pasted into
+  notes or docs, rotate the PAT in GitHub &rarr; Settings &rarr; Developer settings &rarr; Personal access tokens.
+</div>
+
+<div class="toc">
+  <h2>Table of Contents</h2>
+  <ul>
+    <li><a href="#prerequisites">Prerequisites</a></li>
+    <li><a href="#accounts-pat">Accounts, email &amp; PAT setup</a></li>
+    <li><a href="#env-vars">Environment variables</a></li>
+    <li><a href="#git-bash">Use Git Bash on Windows</a></li>
+    <li><a href="#clone">Clone an existing repository</a></li>
+    <li><a href="#remote-import-eclipse">Create remote repo &amp; import in Eclipse (tested)</a></li>
+    <li><a href="#push-new">Push a new local project to GitHub</a></li>
+    <li><a href="#push-existing">Push an existing local repository</a></li>
+    <li><a href="#eclipse-workflow">Eclipse Team / Git workflow</a></li>
+    <li><a href="#github-cli">GitHub CLI (<code>gh</code>) — create repo from PC</a></li>
+    <li><a href="#troubleshooting">Troubleshooting</a></li>
+    <li><a href="#related">Related documentation</a></li>
+  </ul>
+</div>
+
+<!-- Prerequisites -->
+<div class="section-container" id="prerequisites">
+  <div class="section-header setup">Prerequisites</div>
+  <div class="section-body">
+    <div class="section-intro">
+      <p>Use this checklist before cloning or pushing. The organization used for current projects is
+      <a href="https://github.com/giventadeveloporg">giventadeveloporg</a> (see also
+      <a href="github-org-configuration-guide.html">GitHub Organization Configuration Guide</a>).</p>
+    </div>
+    <table>
+      <tr><th>Item</th><th>Notes</th></tr>
+      <tr><td>Git for Windows</td><td>Install from <a href="https://git-scm.com/download/win">git-scm.com</a>; includes <strong>Git Bash</strong>.</td></tr>
+      <tr><td>GitHub account</td><td>Personal or org member account with access to the target repository.</td></tr>
+      <tr><td>Personal Access Token (PAT)</td><td>Classic or fine-grained token with <code>repo</code> scope for HTTPS push/pull.</td></tr>
+      <tr><td>Eclipse (optional)</td><td>Eclipse IDE with EGit plugin for GUI import/share workflows.</td></tr>
+      <tr><td>GitHub CLI (optional)</td><td><code>gh</code> for creating repos from the command line without opening github.com.</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- Accounts & PAT -->
+<div class="section-container" id="accounts-pat">
+  <div class="section-header parameters">Accounts, email &amp; PAT setup</div>
+  <div class="section-body">
+    <div class="parameters-list">
+      <p><strong>Git identity</strong> (set once per machine — use your real values locally, not in git):</p>
+      <ul>
+        <li><strong>GitHub username:</strong> <code>YOUR_GITHUB_USERNAME</code></li>
+        <li><strong>Git commit email:</strong> <code>your-email@example.com</code></li>
+        <li><strong>HTTPS authentication:</strong> use a <strong>PAT</strong> as the password when prompted (not your GitHub account password).</li>
+      </ul>
+    </div>
+
+    <h3>Create a Classic PAT</h3>
+    <ol>
+      <li>GitHub &rarr; <strong>Settings</strong> &rarr; <strong>Developer settings</strong> &rarr; <strong>Personal access tokens</strong> &rarr; <strong>Tokens (classic)</strong>.</li>
+      <li>Generate new token with at least <code>repo</code> scope (and <code>workflow</code> if needed).</li>
+      <li>Copy the token once (format <code>ghp_…</code>) and store it in your password manager.</li>
+    </ol>
+
+    <div class="info-box">
+      <strong>Where PATs are used (locally only):</strong>
+      <ul>
+        <li>Windows environment variable <code>GITHUB_PERSONAL_ACCESS_TOKEN</code> or <code>GIT_PAT_TOKEN</code></li>
+        <li>Git credential manager / HTTPS prompts (paste PAT when asked for password)</li>
+        <li>IDE integrations (IntelliJ, Claude Desktop config, MCP tools such as Byterover — store in local config files that are <strong>not</strong> committed)</li>
+      </ul>
+    </div>
+
+    <h3>Configure Git user (one-time)</h3>
+    <div class="command-block setup"
+         data-command-base="git config --global user.email"
+         data-template-command="git config --global user.email &quot;your-email@example.com&quot;">
+      <div class="command-header">
+        <span class="command-type">Git global config</span>
+        <div class="command-header-buttons">
+          <button type="button" class="copy-button-template" onclick="copyTemplateCommand(this, 'git-config')" title="Copy template command">Template</button>
+          <button type="button" class="copy-button" onclick="copyCommand(this, 'git-config')" title="Copy customized command">Copy</button>
+        </div>
+      </div>
+      <div class="command-parameters">
+        <h5>Customize parameters:</h5>
+        <div class="parameter-group">
+          <div class="parameter-input">
+            <label for="git-config-name">user.name:</label>
+            <input type="text" id="git-config-name" placeholder="Your Name" value="Your Name" oninput="updateGitConfig()">
+          </div>
+          <div class="parameter-input">
+            <label for="git-config-email">user.email:</label>
+            <input type="email" id="git-config-email" placeholder="your-email@example.com" value="your-email@example.com" oninput="updateGitConfig()">
+          </div>
+        </div>
+      </div>
+      <div class="command-content" id="git-config">git config --global user.name "Your Name" &amp;&amp; git config --global user.email "your-email@example.com"</div>
+      <div class="command-single-line">
+        <div class="command-single-line-label">Windows single-line:</div>
+        <code id="git-config-single-code">git config --global user.name "Your Name" &amp;&amp; git config --global user.email "your-email@example.com"</code>
+      </div>
+    </div>
+
+    <p>Video reference for PAT instead of password:
+    <a href="https://www.youtube.com/watch?v=2WnxKCFAXAM">GitHub token usage (YouTube)</a>
+    (based on <a href="https://www.youtube.com/watch?v=BH4OqYHoHC0">related tutorial</a>).</p>
+  </div>
+</div>
+
+<!-- Environment variables -->
+<div class="section-container" id="env-vars">
+  <div class="section-header usage">Environment variables</div>
+  <div class="section-body">
+    <p>Set these in <strong>Windows System Environment Variables</strong> or your user profile — not in repository files.</p>
+    <table>
+      <tr><th>Variable</th><th>Purpose</th></tr>
+      <tr><td><code>GITHUB_PERSONAL_ACCESS_TOKEN</code></td><td>Used by tools and scripts that read a standard GitHub PAT env var.</td></tr>
+      <tr><td><code>GIT_PAT_TOKEN</code></td><td>Alternate name used in some local configs; same value as your PAT.</td></tr>
+    </table>
+    <div class="warning-box">
+      Never commit <code>.env</code>, <code>cipher.yml</code>, or JSON config files containing
+      <code>ghp_…</code> tokens. Add those paths to <code>.gitignore</code>.
+    </div>
+  </div>
+</div>
+
+<!-- Git Bash -->
+<div class="section-container" id="git-bash">
+  <div class="section-header setup">Use Git Bash on Windows</div>
+  <div class="section-body">
+    <div class="section-intro">
+      <p>Prefer <strong>Git Bash</strong> over CMD or PowerShell for git commands when you see
+      <code>HttpRequestException</code> or authentication pop-ups failing.</p>
+    </div>
+    <ol>
+      <li>Open your project folder in File Explorer.</li>
+      <li>Right-click inside the folder &rarr; <strong>Git Bash Here</strong>.</li>
+      <li>Run all <code>git</code> commands from that terminal.</li>
+      <li>When prompted for credentials, use <code>YOUR_GITHUB_USERNAME</code> and your <strong>PAT</strong> as the password.</li>
+    </ol>
+  </div>
+</div>
+
+<!-- Clone -->
+<div class="section-container" id="clone">
+  <div class="section-header setup">Clone an existing repository</div>
+  <div class="section-body">
+    <div class="command-block setup"
+         data-command-base="git clone"
+         data-template-command="git clone https://github.com/giventadeveloporg/REPO_NAME.git">
+      <div class="command-header">
+        <span class="command-type">Clone repository</span>
+        <div class="command-header-buttons">
+          <button type="button" class="copy-button-template" onclick="copyTemplateCommand(this, 'clone-repo')" title="Copy template command">Template</button>
+          <button type="button" class="copy-button" onclick="copyCommand(this, 'clone-repo')" title="Copy customized command">Copy</button>
+        </div>
+      </div>
+      <div class="command-parameters">
+        <h5>Customize parameters:</h5>
+        <div class="parameter-group single">
+          <div class="parameter-input">
+            <label for="clone-repo-org">Organization or user:</label>
+            <input type="text" id="clone-repo-org" placeholder="giventadeveloporg" value="giventadeveloporg" oninput="updateCloneRepo()">
+          </div>
+          <div class="parameter-input">
+            <label for="clone-repo-name">Repository name:</label>
+            <input type="text" id="clone-repo-name" placeholder="REPO_NAME" value="strapi-editorial-template" oninput="updateCloneRepo()">
+          </div>
+        </div>
+      </div>
+      <div class="command-content" id="clone-repo">git clone https://github.com/giventadeveloporg/strapi-editorial-template.git</div>
+      <div class="command-single-line">
+        <div class="command-single-line-label">Windows single-line:</div>
+        <code id="clone-repo-single-code">git clone https://github.com/giventadeveloporg/strapi-editorial-template.git</code>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Remote + Eclipse -->
+<div class="section-container" id="remote-import-eclipse">
+  <div class="section-header usage">Create remote repo &amp; import in Eclipse (tested approach)</div>
+  <div class="section-body">
+    <ol>
+      <li>On GitHub, create a <strong>new repository</strong> (e.g. <code>angulartest</code>).</li>
+      <li>Add a description.</li>
+      <li>Add a <code>.gitignore</code> — copy contents from your local template:
+        <code>E:\Categories\Categories\Software_Projects\Development_Environment_Set_Up\github-details\dot_ignore_file.txt</code>
+        and commit it on GitHub (initial commit online).</li>
+      <li>Copy the clone URL from the green <strong>Code</strong> button, e.g.
+        <code>https://github.com/YOUR_GITHUB_USERNAME/angulartest.git</code>.</li>
+      <li>In Eclipse: right-click &rarr; <strong>Import</strong> &rarr; <strong>Git</strong> &rarr; <strong>Projects from Git</strong> &rarr; <strong>Clone URI</strong>.</li>
+      <li>Paste the URI &rarr; Next &rarr; Next &rarr; <strong>Import as general project</strong>.</li>
+    </ol>
+    <div class="success-box">
+      <strong>Recommended:</strong> This remote-first + Eclipse import flow is the tested approach from the original notes.
+    </div>
+  </div>
+</div>
+
+<!-- Push new -->
+<div class="section-container" id="push-new">
+  <div class="section-header setup">Push a new local project to GitHub</div>
+  <div class="section-body">
+    <div class="section-intro">
+      <p>Always create an <strong>empty repository on GitHub first</strong>, then connect your local folder.</p>
+    </div>
+    <ol>
+      <li>Create empty repo on github.com (no README if you already have local files, or accept merge steps below).</li>
+      <li>Create project directory locally and add a README if starting from scratch.</li>
+    </ol>
+
+    <div class="command-block setup"
+         data-command-base="git init"
+         data-template-command="mkdir PROJECT_NAME &amp;&amp; cd PROJECT_NAME &amp;&amp; echo &quot;# PROJECT_NAME&quot; &gt;&gt; README.md &amp;&amp; git init &amp;&amp; git add README.md &amp;&amp; git commit -m &quot;first commit&quot; &amp;&amp; git branch -M main &amp;&amp; git remote add origin https://github.com/YOUR_GITHUB_USERNAME/PROJECT_NAME.git &amp;&amp; git pull origin main --allow-unrelated-histories &amp;&amp; git push -u origin main">
+      <div class="command-header">
+        <span class="command-type">New project &rarr; first push</span>
+        <div class="command-header-buttons">
+          <button type="button" class="copy-button-template" onclick="copyTemplateCommand(this, 'new-repo-push')" title="Copy template command">Template</button>
+          <button type="button" class="copy-button" onclick="copyCommand(this, 'new-repo-push')" title="Copy customized command">Copy</button>
+        </div>
+      </div>
+      <div class="command-parameters">
+        <h5>Customize parameters:</h5>
+        <div class="parameter-group">
+          <div class="parameter-input">
+            <label for="new-repo-push-user">GitHub user/org:</label>
+            <input type="text" id="new-repo-push-user" placeholder="YOUR_GITHUB_USERNAME" value="giventadeveloporg" oninput="updateNewRepoPush()">
+          </div>
+          <div class="parameter-input">
+            <label for="new-repo-push-name">Repository name:</label>
+            <input type="text" id="new-repo-push-name" placeholder="PROJECT_NAME" value="spring_security_tmplt" oninput="updateNewRepoPush()">
+          </div>
+        </div>
+      </div>
+      <div class="command-content" id="new-repo-push">mkdir spring_security_tmplt &amp;&amp; cd spring_security_tmplt &amp;&amp; echo "# spring_security_tmplt" &gt;&gt; README.md &amp;&amp; git init &amp;&amp; git add README.md &amp;&amp; git commit -m "first commit" &amp;&amp; git branch -M main &amp;&amp; git remote add origin https://github.com/giventadeveloporg/spring_security_tmplt.git &amp;&amp; git pull origin main --allow-unrelated-histories &amp;&amp; git push -u origin main</div>
+      <div class="command-single-line">
+        <div class="command-single-line-label">Windows single-line (Git Bash):</div>
+        <code id="new-repo-push-single-code">mkdir spring_security_tmplt &amp;&amp; cd spring_security_tmplt &amp;&amp; echo "# spring_security_tmplt" &gt;&gt; README.md &amp;&amp; git init &amp;&amp; git add README.md &amp;&amp; git commit -m "first commit" &amp;&amp; git branch -M main &amp;&amp; git remote add origin https://github.com/giventadeveloporg/spring_security_tmplt.git &amp;&amp; git pull origin main --allow-unrelated-histories &amp;&amp; git push -u origin main</code>
+      </div>
+    </div>
+
+    <div class="warning-box">
+      <strong>Force push (<code>-f</code>):</strong> Only use <code>git push origin main -f</code> when you intentionally overwrite remote history
+      (e.g. after creating README on GitHub and rebasing). Avoid on shared branches.
+    </div>
+  </div>
+</div>
+
+<!-- Push existing -->
+<div class="section-container" id="push-existing">
+  <div class="section-header setup">Push an existing local repository</div>
+  <div class="section-body">
+    <p>After creating an empty repo on GitHub:</p>
+    <div class="command-block verify"
+         data-command-base="git remote add origin"
+         data-template-command="git remote add origin https://github.com/YOUR_GITHUB_USERNAME/REPO_NAME.git &amp;&amp; git branch -M main &amp;&amp; git push -u origin main">
+      <div class="command-header">
+        <span class="command-type">Existing repo &rarr; add remote &amp; push</span>
+        <div class="command-header-buttons">
+          <button type="button" class="copy-button-template" onclick="copyTemplateCommand(this, 'push-existing')" title="Copy template command">Template</button>
+          <button type="button" class="copy-button" onclick="copyCommand(this, 'push-existing')" title="Copy customized command">Copy</button>
+        </div>
+      </div>
+      <div class="command-parameters">
+        <h5>Customize parameters:</h5>
+        <div class="parameter-group">
+          <div class="parameter-input">
+            <label for="push-existing-user">GitHub user/org:</label>
+            <input type="text" id="push-existing-user" value="giventadeveloporg" oninput="updatePushExisting()">
+          </div>
+          <div class="parameter-input">
+            <label for="push-existing-name">Repository name:</label>
+            <input type="text" id="push-existing-name" value="java_code_samples_interview" oninput="updatePushExisting()">
+          </div>
+        </div>
+      </div>
+      <div class="command-content" id="push-existing">git remote add origin https://github.com/giventadeveloporg/java_code_samples_interview.git &amp;&amp; git branch -M main &amp;&amp; git push -u origin main</div>
+      <div class="command-single-line">
+        <div class="command-single-line-label">Windows single-line:</div>
+        <code id="push-existing-single-code">git remote add origin https://github.com/giventadeveloporg/java_code_samples_interview.git &amp;&amp; git branch -M main &amp;&amp; git push -u origin main</code>
+      </div>
+    </div>
+    <p>If <code>origin</code> already exists, use <code>git remote set-url origin https://github.com/…</code> instead of <code>git remote add</code>.</p>
+    <p>If default branch is <code>master</code>, try <code>git push -u origin master</code> or rename with <code>git branch -M main</code> first.</p>
+  </div>
+</div>
+
+<!-- Eclipse -->
+<div class="section-container" id="eclipse-workflow">
+  <div class="section-header usage">Eclipse Team / Git workflow</div>
+  <div class="section-body">
+    <h3>Option A — Create local repo then push</h3>
+    <ol>
+      <li>Create repo on GitHub (e.g. <code>dog-app</code>).</li>
+      <li>In Eclipse: create a new Maven project.</li>
+      <li>Right-click project &rarr; <strong>Team</strong> &rarr; <strong>Git</strong> &rarr; <strong>Create Repository</strong> (e.g. under <code>C:\Users\YOUR_USER\git</code>).</li>
+      <li>Right-click &rarr; <strong>Team</strong> &rarr; <strong>Add to Index</strong> (stage files).</li>
+      <li>Commit, then configure push (see Option B).</li>
+    </ol>
+
+    <h3>Option B — Share project</h3>
+    <ol>
+      <li>Right-click project &rarr; <strong>Team</strong> &rarr; <strong>Share Project</strong>.</li>
+      <li>Check <strong>Create project in parent folder of project</strong>.</li>
+      <li>Click <strong>Create Repository</strong> &rarr; <strong>Finish</strong>.</li>
+      <li>Open <strong>Git Repositories</strong> view &rarr; your project &rarr; <strong>Remotes</strong> &rarr; right-click &rarr; <strong>Configure Push</strong>.</li>
+      <li>Set URI to <code>https://github.com/YOUR_GITHUB_USERNAME/REPO_NAME.git</code> (e.g. <code>spring_tiles_tmplt</code>).</li>
+    </ol>
+  </div>
+</div>
+
+<!-- GitHub CLI -->
+<div class="section-container" id="github-cli">
+  <div class="section-header usage">GitHub CLI — create repo from your PC</div>
+  <div class="section-body">
+    <div class="section-intro">
+      <p>You can add a project to GitHub from your machine without opening github.com in the browser (after one-time <code>gh auth login</code>).</p>
+    </div>
+
+    <pre><code>winget install GitHub.cli</code></pre>
+
+    <div class="command-block expedite"
+         data-command-base="gh repo create"
+         data-template-command="cd e:\\project_workspace\\YOUR_PROJECT &amp;&amp; git init &amp;&amp; git add . &amp;&amp; git commit -m &quot;Initial commit&quot; &amp;&amp; gh auth login &amp;&amp; gh repo create YOUR_PROJECT --public --source=. --push">
+      <div class="command-header">
+        <span class="command-type">gh repo create (public or private)</span>
+        <div class="command-header-buttons">
+          <button type="button" class="copy-button-template" onclick="copyTemplateCommand(this, 'gh-create')" title="Copy template command">Template</button>
+          <button type="button" class="copy-button" onclick="copyCommand(this, 'gh-create')" title="Copy customized command">Copy</button>
+        </div>
+      </div>
+      <div class="command-parameters">
+        <h5>Customize parameters:</h5>
+        <div class="parameter-group">
+          <div class="parameter-input">
+            <label for="gh-create-path">Project folder:</label>
+            <input type="text" id="gh-create-path" value="e:\project_workspace\catholicatenews-in" oninput="updateGhCreate()">
+          </div>
+          <div class="parameter-input">
+            <label for="gh-create-name">Repo name:</label>
+            <input type="text" id="gh-create-name" value="catholicatenews-in" oninput="updateGhCreate()">
+          </div>
+          <div class="parameter-input">
+            <label for="gh-create-visibility">Visibility:</label>
+            <input type="text" id="gh-create-visibility" placeholder="public or private" value="public" oninput="updateGhCreate()">
+          </div>
+        </div>
+      </div>
+      <div class="command-content" id="gh-create">cd e:\project_workspace\catholicatenews-in &amp;&amp; git init &amp;&amp; git add . &amp;&amp; git commit -m "Initial commit" &amp;&amp; gh auth login &amp;&amp; gh repo create catholicatenews-in --public --source=. --push</div>
+      <div class="command-single-line">
+        <div class="command-single-line-label">Windows single-line:</div>
+        <code id="gh-create-single-code">cd e:\project_workspace\catholicatenews-in &amp;&amp; git init &amp;&amp; git add . &amp;&amp; git commit -m "Initial commit" &amp;&amp; gh auth login &amp;&amp; gh repo create catholicatenews-in --public --source=. --push</code>
+      </div>
+    </div>
+
+    <p>If <code>gh repo create … --push</code> fails auth, complete <code>gh auth login</code>, then:</p>
+    <pre><code>git branch -M main
+git push -u origin main</code></pre>
+  </div>
+</div>
+
+<!-- Troubleshooting -->
+<div class="section-container" id="troubleshooting">
+  <div class="section-header output">Troubleshooting</div>
+  <div class="section-body">
+
+    <div class="error-box">
+      <h4>non-fast-forward / push rejected</h4>
+      <pre><code>! [rejected] main -&gt; main (non-fast-forward)
+hint: Updates were rejected because the tip of your current branch is behind</code></pre>
+      <p><strong>Fix:</strong> Pull remote changes first, then push:</p>
+      <pre><code>git pull origin main --rebase
+git push -u origin main</code></pre>
+      <p>Or merge: <code>git pull origin main</code> then resolve conflicts and push.</p>
+    </div>
+
+    <div class="error-box">
+      <h4>fatal: remote origin already exists</h4>
+      <p><strong>Fix:</strong> <code>git remote set-url origin https://github.com/YOUR_GITHUB_USERNAME/REPO_NAME.git</code></p>
+    </div>
+
+    <div class="error-box">
+      <h4>HttpRequestException encountered</h4>
+      <p><strong>Fix:</strong> Switch to <strong>Git Bash</strong> (see above). Ensure HTTPS uses PAT as password, not account password.</p>
+    </div>
+
+    <div class="warning-box">
+      <h4>Authentication prompts</h4>
+      <table>
+        <tr><th>Prompt</th><th>Enter</th></tr>
+        <tr><td>Username for 'https://github.com'</td><td><code>YOUR_GITHUB_USERNAME</code></td></tr>
+        <tr><td>Password</td><td>Your <strong>PAT</strong> (<code>ghp_…</code>), not your GitHub login password</td></tr>
+      </table>
+      <p>Complete authentication in the browser popup if Git Credential Manager opens it.</p>
+    </div>
+
+    <div class="info-box">
+      <h4>Example org repository</h4>
+      <p>Current org template example:
+      <a href="https://github.com/giventadeveloporg/strapi-editorial-template">giventadeveloporg/strapi-editorial-template</a></p>
+    </div>
+  </div>
+</div>
+
+<!-- Related -->
+<div class="section-container" id="related">
+  <div class="section-header">Related documentation</div>
+  <div class="section-body">
+    <ul>
+      <li><a href="github-org-configuration-guide.html">GitHub Organization Configuration Guide</a> — teams, seats, <code>release/*</code> rulesets</li>
+      <li><a href="github-org-add-member.html">GitHub Organization — Add Seat &amp; Invite Member</a></li>
+      <li>Source notes (local, not in git): <code>E:\Categories\Categories\Software_Projects\Development_Environment_Set_Up\github-details\github-details.txt</code></li>
+    </ul>
+  </div>
+</div>
+
+<footer>
+  GitHub Development Environment Setup &middot; derived from local github-details notes &middot;
+  credentials redacted for safe git commit &middot; styled per MOSC HTML documentation standards
+</footer>
+
+<script>
+const commandParams = {};
+
+function fallbackCopy(text, button) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.left = '-9999px';
+  document.body.appendChild(ta);
+  ta.select();
+  try {
+    document.execCommand('copy');
+    button.classList.add('copied');
+    const orig = button.textContent;
+    button.textContent = 'Copied!';
+    setTimeout(() => {
+      button.classList.remove('copied');
+      button.textContent = orig;
+    }, 2000);
+  } catch (e) {
+    console.error('Copy failed', e);
+  }
+  document.body.removeChild(ta);
+}
+
+function copyCommand(button, commandId) {
+  const el = document.getElementById(commandId);
+  if (!el) return;
+  const text = el.textContent.trim().replace(/\s+/g, ' ');
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => {
+      button.classList.add('copied');
+      const orig = button.textContent;
+      button.textContent = 'Copied!';
+      setTimeout(() => {
+        button.classList.remove('copied');
+        button.textContent = orig;
+      }, 2000);
+    }).catch(() => fallbackCopy(text, button));
+  } else {
+    fallbackCopy(text, button);
+  }
+}
+
+function copyTemplateCommand(button, commandId) {
+  const block = button.closest('.command-block');
+  if (!block) return;
+  let text = block.getAttribute('data-template-command') || '';
+  text = text.replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => {
+      button.classList.add('copied');
+      const orig = button.textContent;
+      button.textContent = 'Copied!';
+      setTimeout(() => {
+        button.classList.remove('copied');
+        button.textContent = orig;
+      }, 2000);
+    }).catch(() => fallbackCopy(text, button));
+  } else {
+    fallbackCopy(text, button);
+  }
+}
+
+function setCommandText(id, text) {
+  const content = document.getElementById(id);
+  const single = document.getElementById(id + '-single-code');
+  if (content) content.textContent = text;
+  if (single) single.textContent = text;
+}
+
+function updateGitConfig() {
+  const name = document.getElementById('git-config-name').value.trim() || 'Your Name';
+  const email = document.getElementById('git-config-email').value.trim() || 'your-email@example.com';
+  setCommandText('git-config', `git config --global user.name "${name}" && git config --global user.email "${email}"`);
+}
+
+function updateCloneRepo() {
+  const org = document.getElementById('clone-repo-org').value.trim() || 'giventadeveloporg';
+  const repo = document.getElementById('clone-repo-name').value.trim() || 'REPO_NAME';
+  setCommandText('clone-repo', `git clone https://github.com/${org}/${repo}.git`);
+}
+
+function updateNewRepoPush() {
+  const user = document.getElementById('new-repo-push-user').value.trim() || 'YOUR_GITHUB_USERNAME';
+  const name = document.getElementById('new-repo-push-name').value.trim() || 'PROJECT_NAME';
+  const cmd = `mkdir ${name} && cd ${name} && echo "# ${name}" >> README.md && git init && git add README.md && git commit -m "first commit" && git branch -M main && git remote add origin https://github.com/${user}/${name}.git && git pull origin main --allow-unrelated-histories && git push -u origin main`;
+  setCommandText('new-repo-push', cmd);
+}
+
+function updatePushExisting() {
+  const user = document.getElementById('push-existing-user').value.trim() || 'YOUR_GITHUB_USERNAME';
+  const name = document.getElementById('push-existing-name').value.trim() || 'REPO_NAME';
+  setCommandText('push-existing', `git remote add origin https://github.com/${user}/${name}.git && git branch -M main && git push -u origin main`);
+}
+
+function updateGhCreate() {
+  const path = document.getElementById('gh-create-path').value.trim() || 'e:\\project_workspace\\YOUR_PROJECT';
+  const name = document.getElementById('gh-create-name').value.trim() || 'YOUR_PROJECT';
+  const vis = document.getElementById('gh-create-visibility').value.trim() || 'public';
+  setCommandText('gh-create', `cd ${path} && git init && git add . && git commit -m "Initial commit" && gh auth login && gh repo create ${name} --${vis} --source=. --push`);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  updateGitConfig();
+  updateCloneRepo();
+  updateNewRepoPush();
+  updatePushExisting();
+  updateGhCreate();
+});
+</script>
+</body>
+</html>
