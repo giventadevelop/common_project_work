@@ -8,9 +8,9 @@ alwaysApply: false
 
 ## **Overview**
 
-When the user asks to **commit and push** (or "commit push these projects"), run the **same workflow** for all three repositories below unless they name a subset. Only commit when the user **explicitly** requests it.
+When the user asks to **commit and push** (or "commit push these projects") for the **backend core trio** below, run the **same workflow** for all three repositories unless they name a subset. Only commit when the user **explicitly** requests it.
 
-Cross-reference general Git CLI patterns: [git_local_push.mdc](mdc:.cursor/rules/git_local_push.mdc).
+**Related rule (read first for all Git work on this machine):** [git_local_push.mdc](mdc:.cursor/rules/git_local_push.mdc) — PowerShell syntax, **secret filtering before `git commit`**, SSL push workaround, and **Amplify `release/v1.0.0` deploy** for frontend repos (`mosc-temp`, test-site, template). This rule covers only the **three-repo batch** workflow for batch-jobs and service (and mosc-temp when named in the trio).
 
 ## **Repositories (canonical paths & branches)**
 
@@ -22,7 +22,7 @@ Cross-reference general Git CLI patterns: [git_local_push.mdc](mdc:.cursor/rules
 
 - **DO** verify `git branch --show-current` before push; branch names above are defaults, not assumptions.
 - **DO NOT** change `git config` (no global credential or SSL config edits).
-- **DO NOT** commit `.env`, credentials, or secrets.
+- **DO NOT** commit `.env`, credentials, or secrets — run the staged-path secret check in [git_local_push.mdc](mdc:.cursor/rules/git_local_push.mdc) before every `git commit`.
 
 ## **Agent workflow (every commit-and-push request)**
 
@@ -50,6 +50,7 @@ Only repos with changes get a commit. Use focused messages from the diff (not ge
 ```powershell
 cd "F:\project_workspace\<repo-name>"
 git add -A
+git diff --cached --name-only | Select-String -Pattern 'prod\.env|\.env\.local|auth\.json|secrets' -CaseSensitive:$false
 git commit -m "<short summary sentence>" -m "<optional body with scope>"
 ```
 
@@ -64,6 +65,7 @@ git commit -m "<short summary sentence>" -m "<optional body with scope>"
 
 - **DO** use multiple `-m` flags for title + body on Windows (no heredoc required).
 - **DO** run pre-commit hooks; if commit fails due to hooks, fix and create a **new** commit (do not amend unless user asked and HEAD was yours unpushed).
+- **DO** unstage any path matched by the secret filename check (see [git_local_push.mdc](mdc:.cursor/rules/git_local_push.mdc)).
 
 ### **Step 3 — Push all repos that were committed (or have unpushed commits)**
 
@@ -79,6 +81,8 @@ git push origin feature_Freelance_Work
 ```
 
 Replace branch names if `git branch --show-current` differs.
+
+**Amplify production deploy for `mosc-temp`:** After pushing the feature branch, also merge/push `release/v1.0.0` per [git_local_push.mdc](mdc:.cursor/rules/git_local_push.mdc) if the user wants a prod build — the trio push alone may not trigger Amplify.
 
 ### **Step 4 — Verify clean and synced**
 
@@ -100,9 +104,11 @@ Retry **only that repo** with a **one-time** env var (do not persist in git conf
 $env:GIT_SSL_NO_VERIFY='true'
 cd "F:\project_workspace\<repo-name>"
 git push origin <branch-name>
+Remove-Item Env:GIT_SSL_NO_VERIFY
 ```
 
 - **event-site-manager-service** often pushes without this; **mosc-temp** and **batch-jobs** may need it on this machine.
+- Full SSL troubleshooting: [git_local_push.mdc](mdc:.cursor/rules/git_local_push.mdc).
 - Inform the user if SSL bypass was used; suggest fixing CA bundle separately if pushes fail repeatedly.
 
 ## **PowerShell notes**
@@ -139,20 +145,22 @@ git reset --hard origin/<branch-name>
 # ❌ DON'T: Push --force to main without user approval
 # ❌ DON'T: Bundle unrelated repos into one commit message without checking each diff
 # ❌ DON'T: git config http.sslVerify false (use one-time $env:GIT_SSL_NO_VERIFY instead)
+# ❌ DON'T: Skip secret filename check before commit (see git_local_push.mdc)
 ```
 
 ## **Quick reference — full trio commit + push**
 
-When user says *"commit and push these three projects"*:
+When user says *"commit and push these three projects"* (mosc-temp, batch-jobs, service):
 
 1. Parallel `git status` / `git diff --stat` / `git log` on all three paths
-2. `git add -A` + `git commit` per repo with changes
+2. Secret scan + `git add -A` + `git commit` per repo with changes ([git_local_push.mdc](mdc:.cursor/rules/git_local_push.mdc))
 3. `git push origin <branch>` per repo
 4. Retry failed pushes with `$env:GIT_SSL_NO_VERIFY='true'` if SSL error
-5. Report commit hashes, branches, and push status in the response
+5. If mosc-temp prod deploy needed: merge/push `release/v1.0.0` per [git_local_push.mdc](mdc:.cursor/rules/git_local_push.mdc)
+6. Report commit hashes, branches, and push status in the response
 
 ## **References**
 
-- General Git CLI: [git_local_push.mdc](mdc:.cursor/rules/git_local_push.mdc)
+- **General Git CLI, secrets, Amplify release pushes:** [git_local_push.mdc](mdc:.cursor/rules/git_local_push.mdc)
 - Remote: `https://github.com/giventadeveloporg/<repo-name>.git`
 - Last verified push: 2026-06-23 — `mosc-temp` @ `5763c9db`, `batch-jobs` @ `22a62f6`, `service` @ `8884c37`
