@@ -9,6 +9,7 @@ alwaysApply: false
   - Use for routine commits and pushes to existing or new branches.
   - **Also use** when pushing frontend repos so **AWS Amplify production builds** trigger on the correct branch.
   - When the user asks to commit/push the **core trio** (mosc-temp + batch-jobs + service together), also follow [git_commit_push_core_repos.mdc](mdc:.cursor/rules/git_commit_push_core_repos.mdc).
+  - **One-shot prompt** (commit + unstaged files + release deploy): [git_commit_push_release_deploy.mdc](mdc:.cursor/rules/git_commit_push_release_deploy.mdc).
 
 - **Pre-checks**
   - **Verify current branch**:
@@ -32,6 +33,9 @@ When the goal is to **trigger AWS Amplify** (production / satellite frontends), 
 | `mosc-temp` | `F:\project_workspace\mosc-temp` | `release/v1.0.0` | Commit → merge/fast-forward into `release/v1.0.0` → push `release/v1.0.0` |
 | `event-site-front-end-test-site` | `F:\project_workspace\event-site-front-end-test-site` | `release/v1.0.0` | Commit on `release/v1.0.0` → push |
 | `event-site-front-end-template` | `F:\project_workspace\event-site-front-end-template` | `main` (no `release/*` on remote) | Commit on `main` → push `main` |
+| `strapi-editorial-template` | `F:\project_workspace\strapi-editorial-template` | `release/v1.0.0` or `main` | Commit on `main` → FF/merge `release/v1.0.0` if prod uses it |
+| `event-site-manager-batch-jobs` | `F:\project_workspace\event-site-manager-batch-jobs` | `release/v1.0.0` | Commit on `main` → merge into `release/v1.0.0` → push |
+| `event-site-manager-service` | `F:\project_workspace\event-site-manager-service` | `release/v1.0.0` | Commit on feature branch → merge into `release/v1.0.0` → push |
 | `event-site-manager` (primary) | `F:\project_workspace\event-site-manager` | Check Amplify console / docs | Usually `release/v1.0.0` or `main` per app |
 
 **Workflow (feature branch → release):**
@@ -313,6 +317,7 @@ Remove-Item Env:GIT_SSL_NO_VERIFY
 
 ## **References**
 
+- **One-shot commit + push + release deploy:** [git_commit_push_release_deploy.mdc](mdc:.cursor/rules/git_commit_push_release_deploy.mdc)
 - **Core trio batch commit/push** (mosc-temp, batch-jobs, service): [git_commit_push_core_repos.mdc](mdc:.cursor/rules/git_commit_push_core_repos.mdc)
 - Amplify / satellite branches: [satellite-frontend-deployment-guide.html](mdc:documentation/aws-infrastructure/satellite-frontend-deployment-guide.html) (see `application-deployments` repo for this doc)
 - Database import (separate from git): [database_export_import_vpc_local.mdc](mdc:.cursor/rules/database_export_import_vpc_local.mdc) (see `application-deployments` repo)

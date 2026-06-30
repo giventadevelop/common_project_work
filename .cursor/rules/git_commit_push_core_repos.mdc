@@ -10,7 +10,11 @@ alwaysApply: false
 
 When the user asks to **commit and push** (or "commit push these projects") for the **backend core trio** below, run the **same workflow** for all three repositories unless they name a subset. Only commit when the user **explicitly** requests it.
 
-**Related rule (read first for all Git work on this machine):** [git_local_push.mdc](mdc:.cursor/rules/git_local_push.mdc) — PowerShell syntax, **secret filtering before `git commit`**, SSL push workaround, and **Amplify `release/v1.0.0` deploy** for frontend repos (`mosc-temp`, test-site, template). This rule covers only the **three-repo batch** workflow for batch-jobs and service (and mosc-temp when named in the trio).
+**Related rules:**
+- [git_local_push.mdc](mdc:.cursor/rules/git_local_push.mdc) — PowerShell syntax, **secret filtering**, SSL workaround, unstaged/untracked staging
+- [git_commit_push_release_deploy.mdc](mdc:.cursor/rules/git_commit_push_release_deploy.mdc) — **one-shot** commit + push + merge to release/deploy branch (copy-paste prompt)
+
+This rule covers only the **three-repo batch** workflow for batch-jobs and service (and mosc-temp when named in the trio).
 
 ## **Repositories (canonical paths & branches)**
 
@@ -170,6 +174,7 @@ When user says *"commit and push these three projects"* (mosc-temp, batch-jobs, 
 
 ## **References**
 
+- **One-shot commit + push + release deploy:** [git_commit_push_release_deploy.mdc](mdc:.cursor/rules/git_commit_push_release_deploy.mdc)
 - **General Git CLI, secrets, Amplify release pushes:** [git_local_push.mdc](mdc:.cursor/rules/git_local_push.mdc)
 - Remote: `https://github.com/giventadeveloporg/<repo-name>.git`
 - Last verified push: 2026-06-23 — `mosc-temp` @ `5763c9db`, `batch-jobs` @ `22a62f6`, `service` @ `8884c37`
