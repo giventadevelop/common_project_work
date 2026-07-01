@@ -69,7 +69,9 @@ git log origin/<branch>..HEAD --oneline
 
 Only repos with changes get a commit. Use focused messages from the diff (not generic "update files").
 
-When `git status --porcelain` shows **` M` (unstaged modified)** or **`??` (untracked)**, use **`git add -A`** — not only paths the user named. Follow the unstaged/untracked workflow in [git_local_push.mdc](mdc:.cursor/rules/git_local_push.mdc): unstage `tsconfig.tsbuildinfo`, `ordered_PROD.sql`, and blocklisted paths; run secret scan; then commit **all** remaining staged files.
+When `git status --porcelain` shows **` M` (unstaged modified)**, **`MM`**, or **`??` (untracked)**, use **`git add -A`** — not only paths the user named. **Unstaged tracked files count:** if a file shows ` M`, it must be staged and committed when it passes the secret filter; do not push with leftover unstaged app/docs/script changes.
+
+Follow the unstaged/untracked workflow in [git_local_push.mdc](mdc:.cursor/rules/git_local_push.mdc): unstage `tsconfig.tsbuildinfo`, `ordered_PROD.sql`, runtime logs, and blocklisted paths; run secret scan; then commit **all** remaining staged files.
 
 ```powershell
 cd "F:\project_workspace\<repo-name>"
@@ -227,6 +229,8 @@ git reset --hard origin/<branch-name>
 ## **Anti-patterns**
 
 ```powershell
+# ❌ DON'T: Commit/push while porcelain still has unstaged safe files ( M / ??)
+# ❌ DON'T: Stage only .cursor/rules when src/, scripts/, or docs/ also show M or ??
 # ❌ DON'T: Commit without user explicitly asking
 # ❌ DON'T: Commit before git pull when branch is behind origin
 # ❌ DON'T: Push release/v1.0.0 with unresolved merge conflict markers

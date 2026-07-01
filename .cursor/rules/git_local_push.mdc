@@ -144,9 +144,12 @@ gh pr merge <number> --merge --delete-branch=false
 
 When the user asks to **commit and push** a project and `git status` shows **any** unstaged or untracked paths, stage **all safe changes** — not only the paths they named (e.g. not only `.cursor/rules/*` while app code stays dirty).
 
+**Mandatory condition:** If `git status --porcelain` shows **` M` (modified, unstaged)**, **`MM` (staged + unstaged)**, or **`??` (untracked)**, run **`git add -A`** and commit every path that passes the secret filter below. Unstaged tracked files **must not** be left behind when the user requests commit/push — they are first-class commit candidates, same as untracked files.
+
 ```powershell
 git status -sb
 git status --porcelain
+# If any line starts with " M", "MM", "??", " D", " A", etc. — stage all safe paths:
 git add -A
 git diff --cached --name-only
 ```
@@ -170,9 +173,11 @@ git diff --cached --name-only
    ```powershell
    git status -sb
    ```
-   If commit-eligible paths remain dirty, repeat from step 1. Only `tsconfig.tsbuildinfo`, gitignored env files, and other blocklisted paths may stay unstaged.
+   If commit-eligible paths remain dirty (including **` M` unstaged** lines in porcelain), repeat from step 1. Only `tsconfig.tsbuildinfo`, gitignored env files, runtime logs (e.g. `*.log` with OAuth output), and other blocklisted paths may stay unstaged.
 
-**DO:** Include new feature folders (`?? src/**`), docs, SQL refresh artifacts, tenant settings, and modified tracked files in the same commit when they pass the secret filter.
+**DO:** Include **unstaged modified** tracked files (` M`), new feature folders (`?? src/**`), docs, SQL refresh artifacts, tenant settings, and modified tracked files in the same commit when they pass the secret filter.
+
+**DON'T:** Leave unstaged app/docs/script changes uncommitted after a commit/push request — if porcelain still shows ` M` or `??` on safe paths, the workflow is incomplete.
 
 **DON'T:** Commit only `.cursor/rules/*` while leaving other unstaged/untracked app changes behind — unless the user **explicitly** scoped the request to rules only.
 
