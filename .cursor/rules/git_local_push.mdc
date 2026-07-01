@@ -198,6 +198,7 @@ git diff --cached --name-only
 | Category | Examples | Usually commit? |
 |----------|----------|-----------------|
 | App / feature code | `src/**`, `components/**` | ✅ Yes |
+| Backend Java (Spring) | `src/main/java/**`, `src/test/java/**`, `src/main/resources/**` | ✅ Yes — include when porcelain shows ` M` |
 | Cursor rules | `.cursor/rules/*.mdc` | ✅ Yes |
 | Docs / runbooks | `documentation/**`, `*.html` PRDs | ✅ Yes |
 | Migration scripts | `scripts/mosc-in-migration/**` | ✅ Yes (env vars for DB, not hardcoded prod secrets) |

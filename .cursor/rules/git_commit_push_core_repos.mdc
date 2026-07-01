@@ -14,7 +14,9 @@ When the user asks to **commit and push** (or "commit push these projects") for 
 - [git_local_push.mdc](mdc:.cursor/rules/git_local_push.mdc) — PowerShell syntax, **secret filtering**, SSL workaround, unstaged/untracked staging
 - [git_commit_push_release_deploy.mdc](mdc:.cursor/rules/git_commit_push_release_deploy.mdc) — **one-shot** commit + push + merge to release/deploy branch (copy-paste prompt)
 
-This rule covers only the **three-repo batch** workflow for batch-jobs and service (and mosc-temp when named in the trio).
+This rule covers the **three-repo batch** workflow for batch-jobs and service (and mosc-temp when named in the trio).
+
+**Single-repo requests** (e.g. only `event-site-manager-service`) use the same **Step 0 pull → Step 2 `git add -A` + secret scan → commit → push** workflow; stage all **` M` / `??`** paths that pass the filter — including unstaged `src/main/java/**` and `src/test/java/**`.
 
 ## **Repositories (canonical paths & branches)**
 
