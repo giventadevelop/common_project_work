@@ -433,6 +433,7 @@ When any requested repo cannot complete pull, merge, commit, or push, report a *
 
 ## **References**
 
+- **New project — first-time GitHub setup:** [git_new_project_setup.mdc](mdc:.cursor/rules/git_new_project_setup.mdc)
 - **One-shot commit + push + release deploy:** [git_commit_push_release_deploy.mdc](mdc:.cursor/rules/git_commit_push_release_deploy.mdc)
 - **Core trio batch commit/push** (mosc-temp, batch-jobs, service): [git_commit_push_core_repos.mdc](mdc:.cursor/rules/git_commit_push_core_repos.mdc)
 - Amplify / satellite branches: [satellite-frontend-deployment-guide.html](mdc:documentation/aws-infrastructure/satellite-frontend-deployment-guide.html) (see `application-deployments` repo for this doc)

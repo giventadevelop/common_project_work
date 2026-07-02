@@ -1,0 +1,216 @@
+---
+description: Initialize a new local project folder as a GitHub repo — git init, secret-safe first commit, gh repo create, push main (Windows PowerShell)
+globs: **/*
+alwaysApply: false
+---
+
+# Git — Add New Project to GitHub (First-Time Setup)
+
+Use this rule when the user asks to **add a new project to Git**, **create a GitHub repo**, or **push an existing folder** that is not yet a git repository (e.g. `F:\project_workspace\misc-project`, `E:\project_workspace\catholicatenews-in`).
+
+**Related rules (ongoing commits after setup):**
+- [git_local_push.mdc](mdc:.cursor/rules/git_local_push.mdc) — secret filter, unstaged/untracked staging, pull-first
+- [git_commit_push_release_deploy.mdc](mdc:.cursor/rules/git_commit_push_release_deploy.mdc) — commit + push + release deploy for existing repos
+
+---
+
+## **Overview**
+
+| Step | Action |
+|------|--------|
+| 1 | Verify `.gitignore` (secrets, `.env*`, keys, IDE caches) |
+| 2 | `git init` → `git add -A` → secret scan → initial commit |
+| 3 | `gh auth login` (one-time if `gh auth status` fails) |
+| 4 | `gh repo create <name> --public\|--private --source=. --push` |
+| 5 | Fallback: `git remote add origin` + `git branch -M main` + `git push -u origin main` |
+
+**Canonical org:** `giventadevelop` (e.g. `https://github.com/giventadevelop/strapi-editorial-template.git`).
+
+**Default branch:** `main`.
+
+---
+
+## **Step 1 — Pre-flight checks**
+
+```powershell
+cd F:\project_workspace\<project-folder>
+Test-Path .git          # should be False before init
+Test-Path .gitignore    # create or copy from common_project_work if missing
+```
+
+**DO:**
+- ✅ Copy or merge `.gitignore` from [common_project_work](mdc:F:/project_workspace/common_project_work/.gitignore) or sibling repos when the new project has no ignore file.
+- ✅ Ensure `.gitignore` blocks: `.env*`, `*.pem`, `*.key`, `auth.json`, `.auth-state`, `credentials.json`, `service-account*.json`, `.idea/`, `node_modules/`, `**/screenshots/`, local MCP credential files.
+
+**DON'T:**
+- ❌ Run `git add .` and commit without scanning staged paths for secrets.
+- ❌ Commit `.env.local`, production DB env files, or session tokens.
+
+---
+
+## **Step 2 — Initialize and first commit (secret-safe)**
+
+PowerShell: run commands **one per line** (no `&&`).
+
+```powershell
+cd F:\project_workspace\<project-folder>
+git init
+git status --porcelain
+
+git add -A
+git restore --staged tsconfig.tsbuildinfo 2>$null
+git restore --staged code_html_template/SQLS/corrected_event_media_inserts.ordered_PROD.sql 2>$null
+git diff --cached --name-only | Select-String -Pattern `
+  'prod\.env$|\.env\.local|\.env\.production|auth\.json|\.auth-state|secrets|\.pem$|\.key$|credentials|ordered_PROD\.sql|\.log$' `
+  -CaseSensitive:$false | ForEach-Object { git restore --staged $_.Line.Trim() }
+
+# Must return empty:
+git diff --cached --name-only | Select-String -Pattern `
+  'prod\.env$|\.env\.local|auth\.json|secrets|\.pem$|\.key$|credentials' -CaseSensitive:$false
+
+git commit -m "Initial commit"
+git branch -M main
+```
+
+**Content spot-check** for any new env-like or credential-shaped file before commit (see [git_local_push.mdc](mdc:.cursor/rules/git_local_push.mdc)).
+
+---
+
+## **Step 3 — GitHub CLI authentication (one-time)**
+
+```powershell
+gh auth status
+```
+
+If login fails or token is invalid:
+
+```powershell
+gh auth login
+# Follow prompts: GitHub.com → HTTPS → Login with browser (or paste PAT)
+```
+
+User may see auth errors on first `gh repo create`; completing `gh auth login` then retrying push is normal.
+
+---
+
+## **Step 4 — Create remote repo and push**
+
+Replace `<repo-name>` with the GitHub repository name (usually the folder name, e.g. `misc-project`, `catholicatenews-in`).
+
+**Option A — Create + push in one step (preferred):**
+
+```powershell
+cd F:\project_workspace\<project-folder>
+# Public:
+gh repo create giventadevelop/<repo-name> --public --source=. --remote=origin --push
+
+# Or private:
+gh repo create giventadevelop/<repo-name> --private --source=. --remote=origin --push
+```
+
+**Option B — Auth error fallback (manual remote + push):**
+
+```powershell
+cd F:\project_workspace\<project-folder>
+gh repo create giventadevelop/<repo-name> --private --description "Short description" --confirm
+git remote add origin https://github.com/giventadevelop/<repo-name>.git
+git branch -M main
+$env:GIT_SSL_NO_VERIFY = 'true'
+git push -u origin main
+Remove-Item Env:GIT_SSL_NO_VERIFY -ErrorAction SilentlyContinue
+```
+
+**If remote already exists** (re-run setup):
+
+```powershell
+git remote -v
+git remote set-url origin https://github.com/giventadevelop/<repo-name>.git
+git push -u origin main
+```
+
+---
+
+## **Step 5 — Sync cursor git rules into the new project**
+
+Copy standard git rules from `common_project_work` so future commit/push requests work consistently:
+
+```powershell
+$src = 'F:\project_workspace\common_project_work\.cursor\rules'
+$dest = 'F:\project_workspace\<project-folder>\.cursor\rules'
+New-Item -ItemType Directory -Path $dest -Force | Out-Null
+@(
+  'git_local_push.mdc',
+  'git_commit_push_core_repos.mdc',
+  'git_commit_push_release_deploy.mdc',
+  'git_new_project_setup.mdc'
+) | ForEach-Object { Copy-Item (Join-Path $src $_) (Join-Path $dest $_) -Force }
+```
+
+Commit rule sync as a follow-up commit if the initial commit already pushed.
+
+---
+
+## **Example — misc-project**
+
+```powershell
+cd F:\project_workspace\misc-project
+git init
+git add -A
+# ... secret filter (Step 2) ...
+git commit -m "Initial commit"
+git branch -M main
+gh repo create giventadevelop/misc-project --private --source=. --remote=origin --push
+```
+
+Remote URL: `https://github.com/giventadevelop/misc-project.git`
+
+---
+
+## **Example — catholicatenews-in (user template)**
+
+```powershell
+cd E:\project_workspace\catholicatenews-in
+git init
+git add -A
+# ... secret filter ...
+git commit -m "Initial commit"
+gh auth login
+gh repo create giventadevelop/catholicatenews-in --public --source=. --push
+# If auth error:
+git branch -M main
+git push -u origin main
+```
+
+---
+
+## **Verify**
+
+```powershell
+git status -sb
+git remote -v
+git log -1 --oneline
+gh repo view giventadevelop/<repo-name> --web
+```
+
+Expected: `## main...origin/main`, remote `origin` → `https://github.com/giventadevelop/<repo-name>.git`.
+
+---
+
+## **Troubleshooting**
+
+| Issue | Fix |
+|-------|-----|
+| `gh auth status` invalid token | `gh auth login` |
+| `gh repo create` auth error after create | `git remote add origin ...` + `git push -u origin main` |
+| SSL certificate error on push | One-time `$env:GIT_SSL_NO_VERIFY='true'` (see [git_local_push.mdc](mdc:.cursor/rules/git_local_push.mdc)) |
+| Repo name already exists | Use existing remote or pick a new name |
+| Secret file staged | `git restore --staged <path>`, add to `.gitignore`, recommit |
+| `.idea/` or `node_modules/` staged | Add to `.gitignore`, `git rm -r --cached` if needed |
+
+---
+
+## **References**
+
+- GitHub setup doc (in misc-project): [github-development-environment-setup.html](mdc:documentation/github-development-environment-setup.html)
+- Strapi template (reference remote): `https://github.com/giventadevelop/strapi-editorial-template.git`
+- Ongoing commit/push: [git_local_push.mdc](mdc:.cursor/rules/git_local_push.mdc)

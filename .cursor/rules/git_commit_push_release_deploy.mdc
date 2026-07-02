@@ -42,8 +42,9 @@ Follow git_commit_push_release_deploy.mdc.
 | **event-site-manager-service** | `F:\project_workspace\event-site-manager-service` | `feature_Freelance_Work` | **`release/v1.0.0`** | ECS prod (GitHub Actions) |
 | **common_project_work** | `F:\project_workspace\common_project_work` | `main` | **`main`** | Docs/rules only |
 | **application-deployments** | `F:\project_workspace\application-deployments` | `main` | **`main`** | Docs/scripts only |
+| **misc-project** | `F:\project_workspace\misc-project` | `main` | **`main`** | Docs/rules/misc workspace |
 
-- **DO** run `git branch --show-current` and `git branch -a` — do not assume branch names.
+- **New repo setup (first time):** [git_new_project_setup.mdc](mdc:.cursor/rules/git_new_project_setup.mdc)
 - **DO** after commit on work branch: update **deploy branch** so CI/Amplify/Strapi builds run.
 
 ---
