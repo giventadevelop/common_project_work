@@ -82,8 +82,8 @@ git add -A
 git restore --staged tsconfig.tsbuildinfo 2>$null
 git restore --staged code_html_template/SQLS/corrected_event_media_inserts.ordered_PROD.sql 2>$null
 git diff --cached --name-only | Select-String -Pattern `
-  'prod\.env$|\.env\.local|\.env\.production|auth\.json|\.auth-state|secrets|\.pem$|\.key$|credentials|ordered_PROD\.sql' `
-  -CaseSensitive:$false | ForEach-Object { git restore --staged $_.Line }
+  'prod\.env$|\.env\.local|\.env\.production|auth\.json$|\.auth-state|secrets|\.pem$|\.key$|credentials|ordered_PROD\.sql|tsconfig\.tsbuildinfo$' `
+  -CaseSensitive:$false | ForEach-Object { git restore --staged $_.Line.Trim() }
 git diff --cached --name-only | Select-String -Pattern 'prod\.env|\.env\.local|auth\.json|secrets' -CaseSensitive:$false
 git commit -m "<short summary sentence>" -m "<optional body with scope>"
 ```

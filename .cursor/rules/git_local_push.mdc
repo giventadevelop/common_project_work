@@ -163,8 +163,8 @@ git diff --cached --name-only
    git restore --staged tsconfig.tsbuildinfo 2>$null
    git restore --staged code_html_template/SQLS/corrected_event_media_inserts.ordered_PROD.sql 2>$null
    git diff --cached --name-only | Select-String -Pattern `
-     'prod\.env$|\.env\.local|\.env\.production|auth\.json|\.auth-state|secrets|\.pem$|\.key$|credentials|ordered_PROD\.sql' `
-     -CaseSensitive:$false | ForEach-Object { git restore --staged $_.Line }
+     'prod\.env$|\.env\.local|\.env\.production|auth\.json$|\.auth-state|secrets|\.pem$|\.key$|credentials|ordered_PROD\.sql|tsconfig\.tsbuildinfo$' `
+     -CaseSensitive:$false | ForEach-Object { git restore --staged $_.Line.Trim() }
    ```
 4. **Secret filename check** (below) — empty output required before commit.
 5. **Content spot-check** on new untracked env-like or credential-shaped files (below).
@@ -248,6 +248,24 @@ code_html_template/batch_files/database_target.local.env
 code_html_template/batch_files/database_target.prod.env
 code_html_template/SQLS/corrected_event_media_inserts.ordered_PROD.sql
 ```
+
+**Git LFS for SQL exports >100 MB (GitHub hard limit):**
+
+When `export.sql`, `corrected_event_media_inserts.ordered.sql`, or `sequence_fix_inserts/corrected_event_media_inserts.renumbered.sql` exceed **100 MB**, GitHub rejects the push. Track them with Git LFS **before** commit:
+
+```powershell
+git lfs install
+git lfs track "code_html_template/SQLS/export.sql"
+git lfs track "code_html_template/SQLS/corrected_event_media_inserts.ordered.sql"
+git lfs track "code_html_template/SQLS/sequence_fix_inserts/corrected_event_media_inserts.renumbered.sql"
+git add .gitattributes
+git add -A
+# ... secret filter ...
+git commit -m "chore(db): refresh export SQL (Git LFS)"
+git push origin <branch>
+```
+
+Reference: `mosc-temp/.gitattributes`. **`auth.json.example`** is safe to commit; blocklist uses `auth.json$` (exact filename) so examples are not excluded.
 
 **Content spot-check** for new untracked env-like files:
 
