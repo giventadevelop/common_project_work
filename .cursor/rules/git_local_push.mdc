@@ -156,6 +156,8 @@ When the user asks to **commit and push** a project and `git status` shows **any
 
 **Mandatory condition:** If `git status --porcelain` shows **` M` (modified, unstaged)**, **`MM` (staged + unstaged)**, or **`??` (untracked)**, run **`git add -A`** and commit every path that passes the secret filter below. Unstaged tracked files **must not** be left behind when the user requests commit/push — they are first-class commit candidates, same as untracked files.
 
+**Agent rule (explicit):** On any commit/push request — including multi-repo batches (`mosc-temp`, `event-site-manager-service`, `event-site-manager`, front-end templates, `tasks_automation`, etc.) — treat **unstaged (` M`)** and **untracked (`??`)** safe files the same as staged changes. Stage with `git add -A`, then **unstage only** paths on the blocklist (secrets, keys, env files, build artifacts). If the user says "unstaged files hurt them" or "add unstaged files," this is the default behavior — not optional.
+
 ```powershell
 git status -sb
 git status --porcelain
