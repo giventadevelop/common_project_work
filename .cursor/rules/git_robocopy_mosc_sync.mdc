@@ -1,0 +1,128 @@
+---
+description: Robocopy sync mosc-temp into event-site-front-end-test-site and event-site-front-end-template, then commit/push with secret filtering
+globs: **/*
+alwaysApply: false
+---
+
+# Robocopy Sync — mosc-temp → test-site + template
+
+## **Overview**
+
+Use when the user asks to **mirror `mosc-temp` into** the satellite/test frontends (`event-site-front-end-test-site`, `event-site-front-end-template`) via **`robocopy`**, then **commit and push** the destinations.
+
+**Related rules:**
+- [git_local_push.mdc](mdc:.cursor/rules/git_local_push.mdc) — commit/push, secret filter, unstaged files
+- [git_pull.mdc](mdc:.cursor/rules/git_pull.mdc) — pull-only (run before commit if branch is behind)
+- [deploy_apps_to_amplify_ecs.mdc](mdc:.cursor/rules/deploy_apps_to_amplify_ecs.mdc) — Amplify deploy after push
+
+**Copy-paste user prompt:**
+
+```
+robocopy "F:\project_workspace\mosc-temp" "F:\project_workspace\event-site-front-end-test-site" /E /XD .git .claude /XF .env.local .env.production
+
+robocopy "F:\project_workspace\mosc-temp" "F:\project_workspace\event-site-front-end-template" /E /XD .git .claude
+
+Commit and push the destinations.
+Follow .cursor/rules/git_robocopy_mosc_sync.mdc
+```
+
+---
+
+## **Canonical paths**
+
+| Role | Path | Typical branch after sync |
+|------|------|---------------------------|
+| **Source** | `F:\project_workspace\mosc-temp` | `MOSC-redesign-sub-poc-2` (do **not** overwrite unless user asks) |
+| **Dest 1 (test satellite)** | `F:\project_workspace\event-site-front-end-test-site` | `release/v1.0.0` |
+| **Dest 2 (template)** | `F:\project_workspace\event-site-front-end-template` | `main` |
+
+---
+
+## **Commands (exact flags)**
+
+### **1 — test-site** (preserve destination env files)
+
+```powershell
+robocopy "F:\project_workspace\mosc-temp" "F:\project_workspace\event-site-front-end-test-site" /E /XD .git .claude /XF .env.local .env.production
+```
+
+| Flag | Meaning |
+|------|---------|
+| `/E` | Copy subdirs, including empty |
+| `/XD .git .claude` | Never overwrite destination Git or Claude dirs |
+| `/XF .env.local .env.production` | Do **not** overwrite destination env secrets |
+
+### **2 — template** (no env exclude in the user’s usual command)
+
+```powershell
+robocopy "F:\project_workspace\mosc-temp" "F:\project_workspace\event-site-front-end-template" /E /XD .git .claude
+```
+
+- Prefer adding `/XF .env.local .env.production` on template too unless the user **explicitly** wants env files mirrored.
+- Env files must still **never be committed** (secret filter + `.gitignore`).
+
+### **Robocopy exit codes**
+
+| Code | Meaning | Treat as |
+|------|---------|----------|
+| 0 | Nothing copied | OK |
+| 1–7 | Files copied / extras / mismatches | **Success** for this workflow |
+| ≥ 8 | Failures | **BLOCKER** — stop before commit |
+
+```powershell
+# After each robocopy:
+if ($LASTEXITCODE -ge 8) { throw "robocopy failed with exit $LASTEXITCODE" }
+```
+
+---
+
+## **Agent workflow**
+
+1. **Optional:** Note source SHA (`mosc-temp` HEAD) for the commit message.
+2. **Run both `robocopy` commands** (PowerShell; do not use `&&` between long robocopy runs if the shell rejects it — separate statements).
+3. **Auth** before push:
+   ```powershell
+   $env:GH_TOKEN = [Environment]::GetEnvironmentVariable('GH_TOKEN', 'User')
+   gh auth setup-git
+   $env:GIT_SSL_NO_VERIFY = 'true'
+   ```
+4. **Per destination:** `git fetch` + `git pull` on current branch → `git status --porcelain`.
+5. **`git add -A`**, then **unstage blocklist** (same as [git_local_push.mdc](mdc:.cursor/rules/git_local_push.mdc)):
+   - `tsconfig.tsbuildinfo`
+   - `ordered_PROD.sql`
+   - `.env.local`, `.env.production`, `prod.env`, `auth.json`, `credentials.json`, `*.pem`, `*.key`, secrets snapshots, `build-log*.txt`
+6. **Secret filename check** — empty output required before commit.
+7. **Commit** with a sync-style message, then **push** current branch.
+8. Report **COMPLETED** / **BLOCKERS**.
+
+**Suggested commit message:**
+
+```text
+chore(sync): robocopy sync from mosc-temp
+
+Mirror mosc-temp into this repo (exclude .git/.claude; env files not committed).
+```
+
+---
+
+## **What not to do**
+
+- ❌ Commit `.env.local` / `.env.production` / API keys copied by robocopy
+- ❌ Overwrite destination `.git` (always `/XD .git`)
+- ❌ Treat robocopy exit codes 1–7 as failure
+- ❌ Commit only a subset of safe dirty paths after a full mirror — stage **all** safe ` M` / `??` paths
+- ❌ Assume template should receive production secrets; prefer `/XF` for env files unless user overrides
+
+---
+
+## **Optional: Amplify deploy after sync**
+
+Pushing `event-site-front-end-test-site` **`release/v1.0.0`** may trigger Amplify (`d1502cffqchuun`). Template deploys on **`main`**. For verify steps, see [deploy_apps_to_amplify_ecs.mdc](mdc:.cursor/rules/deploy_apps_to_amplify_ecs.mdc).
+
+---
+
+## **References**
+
+- [git_local_push.mdc](mdc:.cursor/rules/git_local_push.mdc)
+- [git_commit_push_release_deploy.mdc](mdc:.cursor/rules/git_commit_push_release_deploy.mdc)
+- Microsoft robocopy exit codes: https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/robocopy

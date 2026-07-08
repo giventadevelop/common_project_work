@@ -11,6 +11,7 @@ alwaysApply: false
   - When the user asks to commit/push the **core trio** (mosc-temp + batch-jobs + service together), also follow [git_commit_push_core_repos.mdc](mdc:.cursor/rules/git_commit_push_core_repos.mdc).
   - **One-shot prompt** (commit + unstaged files + release deploy): [git_commit_push_release_deploy.mdc](mdc:.cursor/rules/git_commit_push_release_deploy.mdc).
   - **Pull only** (no commit/push): [git_pull.mdc](mdc:.cursor/rules/git_pull.mdc).
+  - **Robocopy sync** mosc-temp → test-site + template: [git_robocopy_mosc_sync.mdc](mdc:.cursor/rules/git_robocopy_mosc_sync.mdc).
   - **Deploy to Amplify/ECS** (after commit, push release + verify builds): [deploy_apps_to_amplify_ecs.mdc](mdc:.cursor/rules/deploy_apps_to_amplify_ecs.mdc).
 
 - **Pre-checks**
