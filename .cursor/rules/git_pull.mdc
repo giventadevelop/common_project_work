@@ -1,0 +1,237 @@
+---
+description: Generic git pull workflow for any F:\project_workspace repo on Windows — fetch, pull, conflict resolution, stash, and force-incoming file recovery
+globs: **/*
+alwaysApply: false
+---
+
+# Git Pull — Generic (Any Project)
+
+## **Overview**
+
+Use this rule when the user asks to **`git pull`** one or more repositories — **pull only** (no commit, no push, no release deploy).
+
+**Related rules (do not use for pull-only requests):**
+- [git_local_push.mdc](mdc:.cursor/rules/git_local_push.mdc) — commit, push, secret filter, release merge
+- [git_commit_push_core_repos.mdc](mdc:.cursor/rules/git_commit_push_core_repos.mdc) — multi-repo commit/push batch
+- [deploy_apps_to_amplify_ecs.mdc](mdc:.cursor/rules/deploy_apps_to_amplify_ecs.mdc) — GH_TOKEN auth on this machine
+
+**Copy-paste user prompt:**
+
+```
+git pull this project "F:\project_workspace\<repo-name>"
+Follow .cursor/rules/git_pull.mdc
+```
+
+For multiple repos, list each path on its own line.
+
+---
+
+## **Scope**
+
+- **DO** run `git fetch` + `git pull` on the **current branch** (`git branch --show-current`).
+- **DO** verify `git status -sb` and report whether pull was already up to date, fast-forward, or merge.
+- **DO** attempt conflict resolution before reporting a blocker.
+- **DO** preserve local uncommitted changes when pull succeeds without conflict (they remain dirty after fast-forward).
+- **DON'T** commit, push, or merge to `release/v1.0.0` unless the user explicitly asks.
+- **DON'T** change `git config` (no global credential or SSL config edits).
+
+---
+
+## **Pre-checks (Windows / this machine)**
+
+```powershell
+$env:GH_TOKEN = [Environment]::GetEnvironmentVariable('GH_TOKEN', 'User')
+gh auth setup-git
+$env:GIT_SSL_NO_VERIFY = 'true'
+```
+
+- **DO NOT** run interactive `gh auth login` while User-level `GH_TOKEN` is valid.
+- Pull over HTTPS may need `GIT_SSL_NO_VERIFY` for this machine (session only — do not persist).
+
+---
+
+## **Standard pull workflow (single repo)**
+
+```powershell
+cd F:\project_workspace\<repo-name>
+$branch = git branch --show-current
+$env:GIT_SSL_NO_VERIFY = 'true'
+
+git fetch origin
+git status -sb
+git log HEAD..origin/$branch --oneline
+
+git pull origin $branch
+
+git diff --name-only --diff-filter=U
+git status -sb
+git status --porcelain
+
+Remove-Item Env:GIT_SSL_NO_VERIFY -ErrorAction SilentlyContinue
+```
+
+| `git pull` result | Action |
+|-------------------|--------|
+| **Already up to date** | Report synced; list any local dirty paths |
+| **Fast-forward** | Remote applied — report new HEAD SHA and subject |
+| **Merge commit created** | Pull succeeded — report merge commit |
+| **CONFLICT** | Resolve (below) or report **BLOCKER** |
+| **error: Your local changes would be overwritten** | Stash → pull → stash pop (below) |
+
+---
+
+## **Multi-repo batch pull**
+
+When the user lists multiple paths, run the **standard workflow** for **each repo independently**. One repo failing does not stop others.
+
+```powershell
+$repos = @(
+  'F:\project_workspace\mosc-temp',
+  'F:\project_workspace\event-site-manager-service'
+)
+$env:GIT_SSL_NO_VERIFY = 'true'
+foreach ($repo in $repos) {
+  Push-Location $repo
+  $branch = git branch --show-current
+  git fetch origin
+  git pull origin $branch
+  Pop-Location
+}
+Remove-Item Env:GIT_SSL_NO_VERIFY -ErrorAction SilentlyContinue
+```
+
+Report a **COMPLETED** row per repo (branch, before/after SHA, pull type) and **BLOCKERS** for any failure.
+
+---
+
+## **Local changes would be overwritten — stash pattern**
+
+```powershell
+cd F:\project_workspace\<repo-name>
+$branch = git branch --show-current
+git stash push -m "wip pre-pull $(Get-Date -Format 'yyyy-MM-dd HH:mm')"
+git pull origin $branch
+git stash pop
+```
+
+**After `stash pop`:**
+- If conflicts → resolve or report **BLOCKER** with conflicted file paths.
+- If user asked **incoming wins for a specific file** → `git checkout --theirs -- <path>` then `git add <path>` (merge context) or restore from `origin/$branch` (see force-incoming below).
+
+---
+
+## **Force incoming for a specific file (remote wins)**
+
+When the user says **force pull**, **incoming takes precedence**, or **remote wins** for one file:
+
+```powershell
+cd F:\project_workspace\<repo-name>
+$branch = git branch --show-current
+$file = '<relative/path/to/file>'
+
+git fetch origin
+# Prefer remote version before or after pull:
+git checkout "origin/$branch" -- $file
+git restore --staged $file 2>$null   # keep in working tree only if pull not done yet
+git pull origin $branch
+```
+
+**On merge conflict for that file only:**
+
+```powershell
+git checkout --theirs -- $file
+git add $file
+git commit -m "merge: resolve pull conflict; incoming wins for $file"
+```
+
+**LFS pointer / large SQL on Windows** (`unable to unlink old '...ordered.sql': Invalid argument`):
+
+1. Close IDE/DB tools holding the file.
+2. Restore pointer from remote:
+   ```powershell
+   $tmp = Join-Path $env:TEMP 'file-from-remote'
+   git show "origin/$branch`:$file" | Out-File -FilePath $tmp -Encoding utf8NoBOM
+   cmd /c "git show origin/$branch`:$file > `"$tmp`""
+   Copy-Item -Path $tmp -Destination $file -Force
+   ```
+3. Or run `git lfs pull origin $branch --include=$file` then `git lfs checkout $file`.
+4. Verify: `git diff HEAD -- $file` should be empty (or only CRLF noise).
+
+Reference: [deploy_apps_to_amplify_ecs.mdc](mdc:.cursor/rules/deploy_apps_to_amplify_ecs.mdc) — Windows SQL file lock workaround.
+
+---
+
+## **Conflict resolution (agent must attempt)**
+
+```powershell
+git diff --name-only --diff-filter=U
+Select-String -Path <file> -Pattern '^(<<<<<<<|=======|>>>>>>>)'
+```
+
+1. Open each conflicted file; remove all conflict markers.
+2. `git add <file>` for each resolved file.
+3. Complete:
+   ```powershell
+   git commit -m "merge: resolve conflicts after pull from origin/<branch>"
+   ```
+   Or `git merge --continue` / `git rebase --continue` if applicable.
+
+**If conflicts cannot be resolved safely** → **BLOCKER**; do not commit ambiguous merges.
+
+---
+
+## **Agent response format (pull-only)**
+
+### COMPLETED
+
+| Repo | Branch | Pull | HEAD | Notes |
+|------|--------|------|------|-------|
+| mosc-temp | `MOSC-redesign-sub-poc-2` | Fast-forward | `3136788c` | Local WIP unchanged |
+
+### BLOCKERS
+
+| Repo | Step | Issue | Files | Action needed |
+|------|------|-------|-------|---------------|
+| mosc-temp | pull | Unresolved conflicts | `package.json` | Manual merge |
+
+- **DO** list local dirty paths after a successful pull (uncommitted work is expected).
+- **DON'T** report "pull failed" if only local uncommitted files remain.
+
+---
+
+## **Common canonical paths (defaults — verify branch)**
+
+| Repo | Path | Typical branch |
+|------|------|----------------|
+| mosc-temp | `F:\project_workspace\mosc-temp` | `MOSC-redesign-sub-poc-2` |
+| event-site-manager-service | `F:\project_workspace\event-site-manager-service` | `feature_Freelance_Work` |
+| event-site-manager-batch-jobs | `F:\project_workspace\event-site-manager-batch-jobs` | `main` or `release/v1.0.0` |
+| event-site-manager | `F:\project_workspace\event-site-manager` | `main` |
+| event-site-front-end-template | `F:\project_workspace\event-site-front-end-template` | `main` |
+| event-site-front-end-test-site | `F:\project_workspace\event-site-front-end-test-site` | `release/v1.0.0` |
+| tasks_automation | `F:\project_workspace\tasks_automation` | `main` |
+| common_project_work | `F:\project_workspace\common_project_work` | `main` |
+
+Always run `git branch --show-current` — do not assume the default branch.
+
+---
+
+## **Anti-patterns**
+
+```powershell
+# ❌ DON'T: Commit or push during a pull-only request
+# ❌ DON'T: git reset --hard without user approval (destroys local WIP)
+# ❌ DON'T: Skip fetch before pull
+# ❌ DON'T: git config http.sslVerify false globally
+# ❌ DON'T: Leave conflict markers and report success
+# ❌ DON'T: stash pop blindly on generated test reports without checking if remote should win
+```
+
+---
+
+## **References**
+
+- Pull before commit: [git_local_push.mdc](mdc:.cursor/rules/git_local_push.mdc) Phase 0
+- Core repo batch (commit/push): [git_commit_push_core_repos.mdc](mdc:.cursor/rules/git_commit_push_core_repos.mdc)
+- SQL file lock / LFS: [deploy_apps_to_amplify_ecs.mdc](mdc:.cursor/rules/deploy_apps_to_amplify_ecs.mdc)
+- Rule format: [cursor_rules.mdc](mdc:.cursor/rules/cursor_rules.mdc)

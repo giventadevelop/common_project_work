@@ -11,6 +11,7 @@ alwaysApply: false
 When the user asks to **commit and push** (or "commit push these projects") for the **backend core trio** below, run the **same workflow** for all three repositories unless they name a subset. Only commit when the user **explicitly** requests it.
 
 **Related rules:**
+- [git_pull.mdc](mdc:.cursor/rules/git_pull.mdc) — **pull-only** workflow (fetch, pull, conflicts, stash, force-incoming file)
 - [git_local_push.mdc](mdc:.cursor/rules/git_local_push.mdc) — PowerShell syntax, **secret filtering**, SSL workaround, unstaged/untracked staging
 - [git_commit_push_release_deploy.mdc](mdc:.cursor/rules/git_commit_push_release_deploy.mdc) — **one-shot** commit + push + merge to release/deploy branch (copy-paste prompt)
 
