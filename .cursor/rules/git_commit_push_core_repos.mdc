@@ -21,14 +21,17 @@ This rule covers the **core multi-repo batch** workflow (batch-jobs, service, mo
 
 ### **Unstaged files — mandatory on every commit/push request**
 
-When the user asks to **commit and push** and `git status --porcelain` shows **` M` (unstaged modified)**, **`MM`**, or **`??` (untracked)**:
+When the user asks to **commit and push** (including *"unstaged files hurt them — add them if no secrets"*) and `git status --porcelain` shows **` M` (unstaged modified)**, **`MM`**, or **`??` (untracked)**:
 
 1. **DO** run `git add -A` — never commit only the paths the user named while other safe files stay unstaged.
-2. **DO** unstage blocklisted paths (secrets, keys, `tsconfig.tsbuildinfo`, `ordered_PROD.sql`, runtime logs) per [git_local_push.mdc](mdc:.cursor/rules/git_local_push.mdc).
+2. **DO** unstage blocklisted paths (secrets, keys, `tsconfig.tsbuildinfo`, `ordered_PROD.sql`, `__pycache__/`, `*.pyc`, runtime logs) per [git_local_push.mdc](mdc:.cursor/rules/git_local_push.mdc).
 3. **DO** run the staged-path secret filename check — **empty output required** before `git commit`.
 4. **DO** content spot-check new env-like or credential-shaped untracked files (`sk_live_`, `AKIA…`, real `DB_PASSWORD=`, etc.).
-5. **DON'T** push if porcelain still shows commit-eligible **` M` / `??`** on safe paths after commit (workflow incomplete).
-6. **DON'T** stage or commit paths matching the secret blocklist even when the user says "add everything."
+5. **DO** include all four core repos when user lists them: `mosc-temp`, `event-site-manager-service`, `event-site-manager`, `event-site-manager-batch-jobs` — report **local branch** for each before push.
+6. **DON'T** push if porcelain still shows commit-eligible **` M` / `??`** on safe paths after commit (workflow incomplete).
+7. **DON'T** stage or commit paths matching the secret blocklist even when the user says "add everything" or "add unstaged files."
+
+**Condition summary:** Stage unstaged/untracked files **if and only if** they pass the secret filename blocklist and content spot-check in [git_local_push.mdc](mdc:.cursor/rules/git_local_push.mdc). Secrets and keys are never committed regardless of user request.
 
 ## **Repositories (canonical paths & branches)**
 
@@ -37,7 +40,7 @@ When the user asks to **commit and push** and `git status --porcelain` shows **`
 | **mosc-temp** | `F:\project_workspace\mosc-temp` | `MOSC-redesign-sub-poc-2` | `origin` |
 | **event-site-manager-batch-jobs** | `F:\project_workspace\event-site-manager-batch-jobs` | `main` (work) / `release/v1.0.0` (deploy) | `origin` |
 | **event-site-manager-service** | `F:\project_workspace\event-site-manager-service` | `feature_Freelance_Work` | `origin` |
-| **event-site-manager** | `F:\project_workspace\event-site-manager` | `main` | `origin` |
+| **event-site-manager** | `F:\project_workspace\event-site-manager` | `release/v1.0.0` (verify) / `main` | `origin` |
 | **event-site-front-end-template** | `F:\project_workspace\event-site-front-end-template` | `main` | `origin` |
 | **event-site-front-end-test-site** | `F:\project_workspace\event-site-front-end-test-site` | `release/v1.0.0` | `origin` |
 | **tasks_automation** | `F:\project_workspace\tasks_automation` | `main` | `origin` |
