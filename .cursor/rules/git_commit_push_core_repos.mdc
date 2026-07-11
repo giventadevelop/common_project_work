@@ -31,7 +31,7 @@ When the user asks to **commit and push** (including *"unstaged files hurt them 
 6. **DON'T** push if porcelain still shows commit-eligible **` M` / `??`** on safe paths after commit (workflow incomplete).
 7. **DON'T** stage or commit paths matching the secret blocklist even when the user says "add everything" or "add unstaged files."
 
-**Condition summary:** Stage unstaged/untracked files **if and only if** they pass the secret filename blocklist and content spot-check in [git_local_push.mdc](mdc:.cursor/rules/git_local_push.mdc). Secrets and keys are never committed regardless of user request.
+**Condition summary:** When the user says unstaged files hurt them / add unstaged files — stage **all** ` M` / `??` **if and only if** they pass the secret filename blocklist and content spot-check in [git_local_push.mdc](mdc:.cursor/rules/git_local_push.mdc). Secrets and keys (`auth.json`, `.env*`, `*.pem`, credentials) are **never** committed regardless of user request. Safe TestSprite/docs/SQL/app changes **must** be included.
 
 ## **Repositories (canonical paths & branches)**
 
