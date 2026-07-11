@@ -1,0 +1,184 @@
+---
+description: Invite a collaborator to giventadeveloporg org and/or a repo (e.g. mosc-temp) via gh API — outside collaborator when org seats are full
+globs: **/*
+alwaysApply: false
+---
+
+# GitHub Org / Repo Collaborator Invite
+
+## **Overview**
+
+Use when the user asks to **add someone as a collaborator** to the **`giventadeveloporg`** organization and/or a specific repo such as **`giventadeveloporg/mosc-temp`**.
+
+**Auth (this machine):**
+
+```powershell
+$env:GH_TOKEN = [Environment]::GetEnvironmentVariable('GH_TOKEN', 'User')
+gh auth setup-git
+gh auth status   # expect: Logged in … (GH_TOKEN) with admin:org + repo scopes
+```
+
+---
+
+## **Copy-paste user prompt**
+
+```
+Add EMAIL as a collaborator to https://github.com/organizations/giventadeveloporg
+and https://github.com/giventadeveloporg/mosc-temp
+Send an invite.
+Follow .cursor/rules/github_org_repo_collaborator_invite.mdc
+```
+
+---
+
+## **Canonical targets**
+
+| Target | Path / URL |
+|--------|------------|
+| **Org** | `giventadeveloporg` — https://github.com/organizations/giventadeveloporg |
+| **Primary satellite repo** | `giventadeveloporg/mosc-temp` — https://github.com/giventadeveloporg/mosc-temp |
+| **Default repo permission** | `push` (Write) |
+
+Other org repos use the same pattern: replace `mosc-temp` with the repo name.
+
+---
+
+## **Why email-only invite often fails**
+
+| Approach | Typical result on this org |
+|----------|----------------------------|
+| `POST /repos/{owner}/{repo}/invitations` with `email` | **404 Not Found** for org-owned repos |
+| `POST /orgs/{org}/invitations` with `email` | **422** if Team plan seats are full (`No seats are available`) |
+| `PUT /repos/{owner}/{repo}/collaborators/{username}` | **Works** — sends pending **outside collaborator** invite (no org seat) |
+
+**Always resolve a GitHub username first**, then invite by username.
+
+---
+
+## **Workflow**
+
+### **1 — Resolve GitHub username from email / name**
+
+```powershell
+$email = 'user@example.com'
+$guess = ($email -split '@')[0]
+
+gh api "search/users?q=$guess" --jq '.items[:5] | .[] | {login, html_url, id}'
+gh api "users/$guess" --jq '{login, id, name, html_url}' 2>$null
+```
+
+- Confirm the `login` matches the person (profile URL).
+- If search returns nothing, ask the user for their **GitHub username**.
+
+### **2 — Try org membership invite (optional)**
+
+```powershell
+gh api --method POST orgs/giventadeveloporg/invitations `
+  -f email=user@example.com `
+  -f role=direct_member
+```
+
+| Result | Meaning |
+|--------|---------|
+| **201** | Org invite emailed — user must accept |
+| **422 No seats are available** | Team plan seats full — skip org membership; use outside collaborator (step 3) |
+| Check seats | `gh api orgs/giventadeveloporg --jq '{plan: .plan.name, seats: .plan.seats, filled: .plan.filled_seats}'` |
+
+To add **full org members** when seats are full: upgrade billing seats in GitHub → Organization → Settings → Billing, then retry step 2.
+
+### **3 — Invite as repo outside collaborator (required for repo access without a seat)**
+
+```powershell
+$username = 'github-login'
+$repo = 'mosc-temp'   # or other repo under giventadeveloporg
+$permission = 'push'  # pull | triage | push | maintain | admin
+
+gh api --method PUT "repos/giventadeveloporg/$repo/collaborators/$username" `
+  -f permission=$permission
+```
+
+Success returns invitation JSON with `invitee.login`, `permissions`, `html_url`, `id`.
+
+### **4 — Verify pending invite**
+
+```powershell
+gh api repos/giventadeveloporg/mosc-temp/invitations `
+  --jq '.[] | {id, invitee: .invitee.login, permissions, created_at, html_url, expired}'
+```
+
+Invitee accepts via email or:
+
+`https://github.com/giventadeveloporg/mosc-temp/invitations`
+
+---
+
+## **Permission levels (org repos)**
+
+| `permission` | Access |
+|--------------|--------|
+| `pull` | Read |
+| `triage` | Triage issues/PRs |
+| `push` | **Write** (default for collaborators) |
+| `maintain` | Maintain |
+| `admin` | Admin |
+
+Use **`push`** unless the user asks for a different level.
+
+---
+
+## **Agent response format**
+
+Report:
+
+1. **Resolved username** and profile URL
+2. **Org invite** — sent / failed (include seat error if any)
+3. **Repo invite** — repo, permission, invitation id, pending URL
+4. **What the invitee must do** — accept the invitation
+
+### Example COMPLETED table
+
+| Field | Value |
+|-------|--------|
+| Email | `user@example.com` |
+| GitHub login | `username` |
+| Org invite | Blocked — seats full (2/2) |
+| Repo | `giventadeveloporg/mosc-temp` |
+| Access | Write (`push`) outside collaborator |
+| Invitation ID | `…` |
+| Status | Pending |
+
+---
+
+## **DO / DON'T**
+
+### **DO:**
+- ✅ Load User-level `GH_TOKEN` before `gh api`
+- ✅ Resolve **username** before inviting to an org repo
+- ✅ Prefer **outside collaborator** (`PUT …/collaborators/{username}`) when seats are full
+- ✅ Default permission to **`push`**
+- ✅ Verify with `…/invitations` after sending
+- ✅ Tell the user the invitee must **accept** before they appear under Collaborators
+
+### **DON'T:**
+- ❌ Rely only on email for `POST …/invitations` on org repos (often 404)
+- ❌ Assume org membership succeeded when seats are full
+- ❌ Commit tokens or paste raw `GH_TOKEN` into rules/logs
+- ❌ Force-add without user asking (invites are intentional)
+
+---
+
+## **History (verified)**
+
+| Date | Email | Login | Repo | Result |
+|------|-------|-------|------|--------|
+| 2026-07-10 | `nrdoma@gmail.com` | `nrdoma` | `mosc-temp` | Outside collaborator invite sent (org seats full) |
+| 2026-07-11 | `shuchitamathur28@gmail.com` | `shuchitamathur28` | `mosc-temp` | Outside collaborator invite sent (org seats full 2/2) |
+
+---
+
+## **References**
+
+- GitHub REST: [Add a repository collaborator](https://docs.github.com/en/rest/collaborators/collaborators#add-a-repository-collaborator)
+- GitHub REST: [Create an organization invitation](https://docs.github.com/en/rest/orgs/members#create-an-organization-invitation)
+- Auth on this machine: [deploy_apps_to_amplify_ecs.mdc](mdc:.cursor/rules/deploy_apps_to_amplify_ecs.mdc) Phase 0 (or `application-deployments` copy)
+- Rule format: [cursor_rules.mdc](mdc:.cursor/rules/cursor_rules.mdc)
