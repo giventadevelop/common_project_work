@@ -26,7 +26,7 @@ gh auth status   # expect: Logged in … (GH_TOKEN) with admin:org + repo scopes
 Add EMAIL as a collaborator to https://github.com/organizations/giventadeveloporg
 and https://github.com/giventadeveloporg/mosc-temp
 Send an invite.
-Follow .cursor/rules/github_org_repo_collaborator_invite.mdc
+Follow .cursor/rules/github_org_repo_collaborator_invite_add_user_by_email.mdc
 ```
 
 ---
