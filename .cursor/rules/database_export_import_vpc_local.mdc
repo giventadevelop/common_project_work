@@ -124,8 +124,83 @@ Remove-Item F:\project_workspace\mosc-temp\.env.local.dev-backup-import -Force
 | `/IMPORT-FILE "path"` | Custom SQL import (strict `ON_ERROR_STOP=1`) |
 | `/REGEN-MOSC` | Regenerate `mosc_malankara_orthodox_2` tenant SQL |
 | `/IMPORT-DUP-ONLY` | Fast MOSC tenant refresh via `mosc_dup_only.sql` |
+| `/SKIP-GUARDRAILS` | Emergency only — skip size/table/schema-sync checks |
 
 Help: `database_export_import_refresh.bat --help`
+
+---
+
+## **SQL guardrails (required — stop bad imports)**
+
+**Why:** A lagging `Event_Site_Manager_Latest_Schema.sql` (e.g. missing `show_header_*`) still “succeeded” overall while every `tenant_settings` INSERT failed → **0 rows**. Guardrails fail the batch **before** schema/data apply when dumps are too small, critical tables are under-count, or INSERT columns are missing from the canonical schema.
+
+### **Where it lives (mosc-temp)**
+
+| Artifact | Path |
+|----------|------|
+| Validator + backup rotation | `mosc-temp/scripts/sql_export_import_guardrails.cjs` |
+| Baseline mins / tracked tables | `mosc-temp/code_html_template/SQLS/guardrails/sql_export_import_guardrails.manifest.json` |
+| Rotating backups (keep 5, gitignored) | `mosc-temp/code_html_template/SQLS/guardrails/backups/` |
+
+**CMD note:** `:run_guardrails` must not use nested `if A if B (...) else (...)` — CMD binds `else` to the **inner** `if`, which previously skipped `node` for `backup` / `post-export` / `post-prepare` while still logging OK. Use a top-level `if pre-import ( ... ) else ( node %GR_PHASE% ... )` instead.
+
+### **When the batch runs checks**
+
+| Phase | When | What |
+|-------|------|------|
+| `backup` | Before `pg_dump` overwrites files (not on `/SKIP-EXPORT`) | Copy `export.sql`, ordered, renumbered, PROD, **and** `Event_Site_Manager_Latest_Schema.sql` → `guardrails/backups/`; keep **5** newest per basename, delete older |
+| `post-export` | After step 1 | Size / INSERT count / critical tables / conflict markers on `export.sql` |
+| `post-prepare` | After step 3 (or `/SKIP-EXPORT` path) | Same for ordered + renumbered + PROD |
+| `pre-import` | **Before** confirm + step 5 schema apply | Re-validate dumps + **schema column sync** (`INSERT` cols ⊆ `CREATE TABLE` for `tenant_settings`, `tenant_organization`, `event_details`, `user_profile`) |
+
+Any **FAIL** stops the batch. Fix SQL/schema, restore from `guardrails/backups/`, or regenerate without `/SKIP-EXPORT`. Use `/SKIP-GUARDRAILS` only as an emergency.
+
+### **Manual commands**
+
+```powershell
+cd F:\project_workspace\mosc-temp
+node scripts\sql_export_import_guardrails.cjs backup
+node scripts\sql_export_import_guardrails.cjs post-export
+node scripts\sql_export_import_guardrails.cjs post-prepare
+node scripts\sql_export_import_guardrails.cjs pre-import --import-file "code_html_template\SQLS\sequence_fix_inserts\corrected_event_media_inserts.renumbered.sql"
+
+# After a known-good export that adds tables or grows critical row counts:
+node scripts\sql_export_import_guardrails.cjs update-manifest
+```
+
+### **Critical / config tables**
+
+Manifest `criticalTables` (e.g. `tenant_settings`, `tenant_organization`, `event_type_details`, `membership_plan`, …) must meet **minimum INSERT counts**. Empty or truncated dumps fail here.
+
+### **All tracked tables (tightened)**
+
+- `failOnMissingTrackedTables: true` — every table in `trackedTables` must have **≥ 1 INSERT** or the run **FAILS** (not just a warning).
+- `schemaColumnSyncTables: ["*"]` — **every** table present in the export is checked: INSERT column list must be a subset of `CREATE TABLE` columns in `Event_Site_Manager_Latest_Schema.sql` (not limited to `tenant_settings`).
+
+### **New tables**
+
+- Tables present in `export.sql` but not in `trackedTables` → **WARN** (does not fail by default).
+- After confirming the export is good: run **`update-manifest`** to refresh `trackedTables` and critical mins, then commit the manifest.
+- Set `"failOnUnknownTables": true` in the manifest if you want unknown tables to fail hard.
+
+### **Canonical schema file**
+
+- **Active:** `mosc-temp/code_html_template/SQLS/Current_Sqls/Event_Site_Manager_Latest_Schema.sql`
+- **Historical:** `Current_Sqls/archive/Latest_Schema_Post__Blob_Claude_*__yyyy-MM-dd_HHmmss.sql` (timestamped renames of prior versions)
+
+### **Canonical schema sync (best ongoing fix)**
+
+1. Ship Liquibase changelog in `event-site-manager-service`.
+2. **Same change set:** update `Event_Site_Manager_Latest_Schema.sql` (`CREATE TABLE` must include new columns — no lag).
+3. Export → guardrails → import. `pre-import` schema sync (`*`) catches the `show_header_*` class of bugs across all tables.
+
+### **DO / DON'T (guardrails)**
+
+- ✅ Treat `Event_Site_Manager_Latest_Schema.sql` as SoT for **import rebuilds**; keep it aligned with Liquibase
+- ✅ Commit manifest updates when critical row counts or table sets change intentionally
+- ✅ Use backups under `SQLS/guardrails/backups/` to recover a bad overwrite
+- ❌ Do not rely on batch “OVERALL SUCCESS” alone — insert errors can be non-fatal without guardrails
+- ❌ Do not habitually use `/SKIP-GUARDRAILS`
 
 ---
 
@@ -133,13 +208,14 @@ Help: `database_export_import_refresh.bat --help`
 
 | Step | Action | Output / target |
 |------|--------|-----------------|
+| G | Guardrails `backup` / `post-export` / `post-prepare` / `pre-import` | Fail fast if dumps/schema invalid |
 | 0 | Resolve Docker container | Local export source |
 | 1 | `pg_dump --data-only --column-inserts` | `mosc-temp/code_html_template/SQLS/export.sql` |
 | 2 | `node reorder_sql_inserts_final.cjs` | `corrected_event_media_inserts.ordered.sql` |
 | 2b | `renumber_sql_insert_ids.cjs` + mojibake fix | `sequence_fix_inserts/corrected_event_media_inserts.renumbered.sql` |
 | 3 | `node scripts/replace-user-profile-ids-in-sql.mjs` | `corrected_event_media_inserts.ordered_PROD.sql` |
 | 4 | Comment `pg_dump` header lines in import file | Patched SQL |
-| 5 | Apply `Latest_Schema_Post__Blob_Claude_12.sql` | Target DB schema |
+| 5 | Apply `Event_Site_Manager_Latest_Schema.sql` | Target DB schema |
 | 6 | Import ordered / PROD / custom SQL | Target DB data |
 | 7 | `sync_all_table_sequences.sql` + Spring Batch sync | Sequences |
 
@@ -180,8 +256,10 @@ Database-only refresh **does not require ECS redeploy** — backend reads RDS di
 ### **DO:**
 - ✅ Use `WORKSPACE_ROOT=F:\project_workspace` so batch finds `mosc-temp\code_html_template\SQLS`
 - ✅ Run **local export once**, then `/SKIP-EXPORT /REMOTE` for dev and prod
+- ✅ Let guardrails run (do not use `/SKIP-GUARDRAILS` unless emergency)
 - ✅ Type **`PRODUCTION`** for any `/REMOTE` run
 - ✅ Restore `.env.local` to **dev** after prod import
+- ✅ After Liquibase column adds: update `Event_Site_Manager_Latest_Schema.sql` in the same change, then export/import
 - ✅ Verify calendar-related counts after local import if needed:
   ```powershell
   docker exec CONTAINER_ID psql -U event_site_admin -d event_site_manager_db -c "SELECT COUNT(*) FROM event_calendar_entry;"
@@ -192,6 +270,8 @@ Database-only refresh **does not require ECS redeploy** — backend reads RDS di
 - ❌ Run `/REMOTE` against prod without explicit intent and backup plan
 - ❌ Assume liturgical **readings** are included — they are in **Strapi**
 - ❌ Expect `/FORCE` to bypass remote **`PRODUCTION`** confirmation
+- ❌ Import when guardrails FAIL (fix schema/SQL or restore from `SQLS/guardrails/backups/`)
+- ❌ Skip updating `Event_Site_Manager_Latest_Schema.sql` when Liquibase adds columns
 
 ---
 
