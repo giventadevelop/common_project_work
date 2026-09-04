@@ -170,7 +170,27 @@ node scripts\sql_export_import_guardrails.cjs update-manifest
 
 ### **Critical / config tables**
 
-Manifest `criticalTables` (e.g. `tenant_settings`, `tenant_organization`, `event_type_details`, `membership_plan`, …) must meet **minimum INSERT counts**. Empty or truncated dumps fail here.
+Manifest `criticalTables` (e.g. `tenant_settings`, `tenant_organization`, `event_type_details`, `membership_plan`, `event_agenda_item`, …) must meet **minimum INSERT counts**. Empty or truncated dumps fail here.
+
+### **Agenda / media image URLs (do not miss after re-upload)**
+
+Agenda thumbnails are **S3 URL strings** in Postgres (`event_agenda_item.image_url`, `event_media.file_url`) — **not** binary blobs in the SQL dump. `pg_dump` already exports them; a stale dump happens when you **export before re-uploading** images, then copy SQL to another machine.
+
+**Guardrails (required):**
+
+| Check | Where | Behavior |
+|-------|--------|----------|
+| `event_agenda_item` in `criticalTables` | post-export / post-prepare / pre-import | FAIL if too few agenda INSERTs |
+| `contentChecks.eventAgendaItemImageUrls` | same | FAIL if too few non-empty `image_url` values, or published rows missing URL |
+| `contentChecks.liveDockerCompare` | when batch passes `--docker-container` | FAIL if `export.sql` `id\|image_url` fingerprints ≠ live Docker DB |
+
+**Process:**
+
+1. Upload / change agenda images in admin UI.
+2. **Re-export** from local Docker (`database_export_import_refresh.bat` without `/SKIP-EXPORT`, or export-only then decline import).
+3. Only then copy/import SQL (`/SKIP-EXPORT` on another machine or `/REMOTE`).
+
+Do **not** ship an older `export.sql` / ordered / PROD file after media changes — live Docker compare will fail on the export machine if URLs drifted.
 
 ### **All tracked tables (tightened)**
 
@@ -208,7 +228,7 @@ Manifest `criticalTables` (e.g. `tenant_settings`, `tenant_organization`, `event
 
 | Step | Action | Output / target |
 |------|--------|-----------------|
-| G | Guardrails `backup` / `post-export` / `post-prepare` / `pre-import` | Fail fast if dumps/schema invalid |
+| G | Guardrails `backup` / `post-export` / `post-prepare` / `pre-import` (+ agenda URL content + optional live Docker compare) | Fail fast if dumps/schema/media URLs invalid |
 | 0 | Resolve Docker container | Local export source |
 | 1 | `pg_dump --data-only --column-inserts` | `mosc-temp/code_html_template/SQLS/export.sql` |
 | 2 | `node reorder_sql_inserts_final.cjs` | `corrected_event_media_inserts.ordered.sql` |
@@ -256,6 +276,7 @@ Database-only refresh **does not require ECS redeploy** — backend reads RDS di
 ### **DO:**
 - ✅ Use `WORKSPACE_ROOT=F:\project_workspace` so batch finds `mosc-temp\code_html_template\SQLS`
 - ✅ Run **local export once**, then `/SKIP-EXPORT /REMOTE` for dev and prod
+- ✅ **Re-export after uploading or changing agenda/event media** before copying SQL or using `/SKIP-EXPORT`
 - ✅ Let guardrails run (do not use `/SKIP-GUARDRAILS` unless emergency)
 - ✅ Type **`PRODUCTION`** for any `/REMOTE` run
 - ✅ Restore `.env.local` to **dev** after prod import
@@ -272,6 +293,7 @@ Database-only refresh **does not require ECS redeploy** — backend reads RDS di
 - ❌ Expect `/FORCE` to bypass remote **`PRODUCTION`** confirmation
 - ❌ Import when guardrails FAIL (fix schema/SQL or restore from `SQLS/guardrails/backups/`)
 - ❌ Skip updating `Event_Site_Manager_Latest_Schema.sql` when Liquibase adds columns
+- ❌ Copy/import SQL after agenda image re-uploads **without** a fresh export (URLs in dump will be stale)
 
 ---
 
