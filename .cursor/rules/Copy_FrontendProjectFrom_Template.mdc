@@ -42,7 +42,7 @@ Prefer the **common_project_work** path.
 2. **Excludes:** `.git`, `.claude`, `node_modules`, `.next`, `.turbo`, `out`, `dist`, `coverage`, `.amplify`, `.vercel`.
 3. **Includes** `.env.local` and `.env.production` (gitignored; never commit).
 4. **Rewrites** the detected satellite host in those env files to `-NewDomain` (`www.` + apex + `https://` variants).
-5. **Does not rewrite** primary/API hosts: `kluvo.ai`, `event-site-manager-dev.com`, `event-site-manager-prod.com`, `clerk.kluvo.ai`, `localhost`.
+5. **Does not rewrite** primary/API hosts: `kluvo.ai`, `api.kluvo.ai`, `api-dev.kluvo.ai`, `event-site-manager-dev.com`, `event-site-manager-prod.com` (legacy aliases), `clerk.kluvo.ai`, `localhost`.
 6. **`.env.local` `NEXT_PUBLIC_APP_URL`:** keep `http://localhost:…` unless `-LocalPort` is set.
 7. **`.env.production`:** set `NEXT_PUBLIC_APP_URL`, `AMPLIFY_NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_CLERK_DOMAIN` to the new www host.
 8. Optional `-NewTenantId` replaces the source `NEXT_PUBLIC_TENANT_ID`.

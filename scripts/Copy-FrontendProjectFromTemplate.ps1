@@ -112,6 +112,8 @@ function Get-ProtectedHosts {
     @(
         'kluvo.ai',
         'www.kluvo.ai',
+        'api.kluvo.ai',
+        'api-dev.kluvo.ai',
         'event-site-manager-dev.com',
         'event-site-manager-prod.com',
         'clerk.kluvo.ai',
