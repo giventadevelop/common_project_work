@@ -87,7 +87,7 @@ When the user lists multiple paths, run the **standard workflow** for **each rep
 ```powershell
 $repos = @(
   'F:\project_workspace\mosc-temp',
-  'F:\project_workspace\event-site-manager-service'
+  'F:\project_workspace\kluvo-ai-service'
 )
 $env:GIT_SSL_NO_VERIFY = 'true'
 foreach ($repo in $repos) {
@@ -204,9 +204,9 @@ Select-String -Path <file> -Pattern '^(<<<<<<<|=======|>>>>>>>)'
 | Repo | Path | Typical branch |
 |------|------|----------------|
 | mosc-temp | `F:\project_workspace\mosc-temp` | `MOSC-redesign-sub-poc-2` |
-| event-site-manager-service | `F:\project_workspace\event-site-manager-service` | `feature_Freelance_Work` |
-| event-site-manager-batch-jobs | `F:\project_workspace\event-site-manager-batch-jobs` | `main` or `release/v1.0.0` |
-| event-site-manager | `F:\project_workspace\event-site-manager` | `main` |
+| kluvo-ai-service | `F:\project_workspace\kluvo-ai-service` | `feature_Freelance_Work` |
+| kluvo-ai-batch-jobs | `F:\project_workspace\kluvo-ai-batch-jobs` | `main` or `release/v1.0.0` |
+| event-site-manager | `F:\project_workspace\kluvo-ai-admin` | `main` |
 | event-site-front-end-template | `F:\project_workspace\event-site-front-end-template` | `main` |
 | event-site-front-end-test-site | `F:\project_workspace\event-site-front-end-test-site` | `release/v1.0.0` |
 | tasks_automation | `F:\project_workspace\tasks_automation` | `main` |
