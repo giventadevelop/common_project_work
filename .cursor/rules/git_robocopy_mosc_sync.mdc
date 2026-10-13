@@ -10,6 +10,8 @@ alwaysApply: false
 
 Use when the user asks to **mirror `mosc-temp` into** the satellite/test frontends (`event-site-front-end-test-site`, `event-site-front-end-template`) via **`robocopy`**, then **commit and push** the destinations.
 
+For a **new** customer folder (copy template + `.env.local` + rewrite domain), use [Copy_FrontendProjectFrom_Template.mdc](mdc:.cursor/rules/Copy_FrontendProjectFrom_Template.mdc) instead — this rule only updates **existing** dest repos and **excludes** `.env.local`.
+
 **Related rules:**
 - [git_local_push.mdc](mdc:.cursor/rules/git_local_push.mdc) — commit/push, secret filter, unstaged files
 - [git_pull.mdc](mdc:.cursor/rules/git_pull.mdc) — pull-only (run before commit if branch is behind)

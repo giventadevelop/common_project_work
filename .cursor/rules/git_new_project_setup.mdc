@@ -9,6 +9,7 @@ alwaysApply: false
 Use this rule when the user asks to **add a new project to Git**, **create a GitHub repo**, or **push an existing folder** that is not yet a git repository (e.g. `F:\project_workspace\misc-project`, `E:\project_workspace\catholicatenews-in`).
 
 **Related rules (ongoing commits after setup):**
+- [Copy_FrontendProjectFrom_Template.mdc](mdc:.cursor/rules/Copy_FrontendProjectFrom_Template.mdc) — **create the folder first** by copying an existing frontend + `.env.local` and rewriting the domain
 - [git_local_push.mdc](mdc:.cursor/rules/git_local_push.mdc) — secret filter, unstaged/untracked staging, pull-first
 - [git_commit_push_release_deploy.mdc](mdc:.cursor/rules/git_commit_push_release_deploy.mdc) — commit + push + release deploy for existing repos
 
@@ -142,7 +143,8 @@ New-Item -ItemType Directory -Path $dest -Force | Out-Null
   'git_local_push.mdc',
   'git_commit_push_core_repos.mdc',
   'git_commit_push_release_deploy.mdc',
-  'git_new_project_setup.mdc'
+  'git_new_project_setup.mdc',
+  'Copy_FrontendProjectFrom_Template.mdc'
 ) | ForEach-Object { Copy-Item (Join-Path $src $_) (Join-Path $dest $_) -Force }
 ```
 

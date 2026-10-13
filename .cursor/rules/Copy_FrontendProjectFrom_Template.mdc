@@ -1,0 +1,114 @@
+---
+description: Copy an existing frontend (kcnj-temp, mosc-temp, template) into a NEW F:\project_workspace folder, copy .env.local, rewrite the satellite domain, then develop locally
+globs: **/*
+alwaysApply: false
+---
+
+# Copy_FrontendProjectFrom_Template
+
+Use this rule when the user asks to **onboard a new frontend from an existing site**, **copy kcnj-temp / mosc-temp / event-site-front-end-template to a new folder**, **clone a project and change the domain**, or **start a new customer site locally**.
+
+This is the **local workspace clone**. It is **not** Amplify/Clerk/Route 53 (that is [satellite_domain_new_site_configuration_and_deployment.mdc](mdc:.cursor/rules/satellite_domain_new_site_configuration_and_deployment.mdc) in `application-deployments`). It is **not** mirroring into an existing satellite repo ([git_robocopy_mosc_sync.mdc](mdc:.cursor/rules/git_robocopy_mosc_sync.mdc)). After the folder exists, GitHub init is [git_new_project_setup.mdc](mdc:.cursor/rules/git_new_project_setup.mdc).
+
+**Copy-paste user prompt:**
+
+```
+Copy F:\project_workspace\kcnj-temp to F:\project_workspace\<new-folder>.
+Include .env.local. Change the domain to www.<new-domain>.com.
+Optional: tenant id <tenant_id>, local port 3003.
+Follow .cursor/rules/Copy_FrontendProjectFrom_Template.mdc
+```
+
+---
+
+## **Canonical script**
+
+```
+F:\project_workspace\common_project_work\scripts\Copy-FrontendProjectFromTemplate.ps1
+```
+
+Also copied to `application-deployments`:
+
+- Tracked: `documentation/tenant_onboarding/scripts/Copy-FrontendProjectFromTemplate.ps1`
+- Local (gitignored `_private`): `documentation/aws-infrastructure/_private/scripts/Copy-FrontendProjectFromTemplate.ps1`
+
+Prefer the **common_project_work** path.
+
+---
+
+## **What the script does**
+
+1. **Robocopy** source → **new** dest (`/E`).
+2. **Excludes:** `.git`, `.claude`, `node_modules`, `.next`, `.turbo`, `out`, `dist`, `coverage`, `.amplify`, `.vercel`.
+3. **Includes** `.env.local` and `.env.production` (gitignored; never commit).
+4. **Rewrites** the detected satellite host in those env files to `-NewDomain` (`www.` + apex + `https://` variants).
+5. **Does not rewrite** primary/API hosts: `kluvo.ai`, `event-site-manager-dev.com`, `event-site-manager-prod.com`, `clerk.kluvo.ai`, `localhost`.
+6. **`.env.local` `NEXT_PUBLIC_APP_URL`:** keep `http://localhost:…` unless `-LocalPort` is set.
+7. **`.env.production`:** set `NEXT_PUBLIC_APP_URL`, `AMPLIFY_NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_CLERK_DOMAIN` to the new www host.
+8. Optional `-NewTenantId` replaces the source `NEXT_PUBLIC_TENANT_ID`.
+9. Copies this rule + `git_new_project_setup.mdc` + `git_local_push.mdc` into dest `.cursor/rules`.
+10. Optional `-InitGit` runs `git init` only (no commit, no remote).
+
+Source domain is read from dest-to-be source `.env.production` (`NEXT_PUBLIC_CLERK_DOMAIN` / `NEXT_PUBLIC_APP_URL`) if `-SourceDomain` is omitted.
+
+---
+
+## **Agent workflow**
+
+1. Confirm **source folder**, **new folder name**, **new domain**, optional **tenant id** and **local port**. Do not invent a customer domain.
+2. Dest must **not** already exist unless the user passed overwrite (`-Force`).
+3. Run (PowerShell, **no** `&&`):
+
+```powershell
+& "F:\project_workspace\common_project_work\scripts\Copy-FrontendProjectFromTemplate.ps1" `
+  -SourceDir "F:\project_workspace\kcnj-temp" `
+  -DestDir "F:\project_workspace\<new-folder>" `
+  -NewDomain "www.<new-domain>.com" `
+  -NewTenantId "<tenant_id>" `
+  -LocalPort 3003
+```
+
+`-WhatIf` first if the user wants a dry run.
+
+4. Robocopy exit **0–7** = success; **≥ 8** = stop.
+5. Report dest path, domain rewrite summary (**no secret values**), and next steps.
+6. **Do not** `git add` / commit `.env.local` or `.env.production`.
+7. **Do not** create GitHub/Amplify/Clerk unless the user asked. If they want a repo next: [git_new_project_setup.mdc](mdc:.cursor/rules/git_new_project_setup.mdc).
+
+```powershell
+cd F:\project_workspace\<new-folder>
+npm install
+```
+
+---
+
+## **Example**
+
+Copy `kcnj-temp` → `new-org`, domain `www.new-org.com`, tenant `new_org_1`:
+
+```powershell
+& "F:\project_workspace\common_project_work\scripts\Copy-FrontendProjectFromTemplate.ps1" -SourceDir "F:\project_workspace\kcnj-temp" -DestName "new-org" -NewDomain "www.new-org.com" -NewTenantId "new_org_1" -LocalPort 3003 -InitGit
+```
+
+Creates `F:\project_workspace\new-org` with rewritten env; `.env.local` stays on localhost:3003.
+
+---
+
+## **DO / DON'T**
+
+- ✅ Copy `.env.local` so local `npm run dev` works
+- ✅ Exclude `.git` so the new folder is not tied to the template remote
+- ✅ Keep Clerk keys / Stripe keys as copied (same platform instance until infra onboarding)
+- ✅ Treat dest `.env*` as secrets
+- ❌ Use [git_robocopy_mosc_sync.mdc](mdc:.cursor/rules/git_robocopy_mosc_sync.mdc) for a **new** customer folder (that rule overwrites **existing** test-site/template and **skips** `.env.local`)
+- ❌ Commit env files
+- ❌ Rewrite `NEXT_PUBLIC_PRIMARY_DOMAIN` or API hosts
+- ❌ Register Route 53 / Amplify / Clerk as part of this copy
+
+---
+
+## **Related**
+
+- [git_new_project_setup.mdc](mdc:.cursor/rules/git_new_project_setup.mdc) — `git init` + `gh repo create` after the folder exists
+- [git_robocopy_mosc_sync.mdc](mdc:.cursor/rules/git_robocopy_mosc_sync.mdc) — sync into **existing** satellites
+- `application-deployments` [onboarding_new_customer_satellite_tenant.mdc](mdc:F:/project_workspace/application-deployments/.cursor/rules/onboarding_new_customer_satellite_tenant.mdc) — tenant + satellite infra after local clone
