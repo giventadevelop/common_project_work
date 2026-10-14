@@ -110,13 +110,13 @@ function Get-DetectedSourceDomain {
 
 function Get-ProtectedHosts {
     @(
-        'kluvo.ai',
-        'www.kluvo.ai',
-        'api.kluvo.ai',
-        'api-dev.kluvo.ai',
+        'adwiiseagent.ai',
+        'www.adwiiseagent.ai',
+        'api.adwiiseagent.ai',
+        'api-dev.adwiiseagent.ai',
         'event-site-manager-dev.com',
         'event-site-manager-prod.com',
-        'clerk.kluvo.ai',
+        'clerk.adwiiseagent.ai',
         'localhost',
         '127.0.0.1'
     )
