@@ -6,7 +6,7 @@ alwaysApply: false
 
 # Database Schema Guidelines
 
-This rule defines the standard patterns for adding or modifying PostgreSQL tables in this project. The **canonical reference** is [Latest_Schema_Post__Blob_Claude_12.sql](mdc:code_html_template/SQLS/Current_Sqls/Latest_Schema_Post__Blob_Claude_12.sql).
+This rule defines the standard patterns for adding or modifying PostgreSQL tables in this project. The **canonical reference** is [adwiise_agent_Latest_Schema.sql](mdc:F:/project_workspace/adwiise-agent-database-repo/SQLS/Current_Sqls/adwiise_agent_Latest_Schema.sql) (`F:\project_workspace\adwiise-agent-database-repo\SQLS\Current_Sqls\adwiise_agent_Latest_Schema.sql`).
 
 ## **ID and Primary Key**
 
@@ -70,7 +70,7 @@ This rule defines the standard patterns for adding or modifying PostgreSQL table
 
 ## **Reference Implementation**
 
-- **Schema file:** [code_html_template/SQLS/Current_Sqls/Latest_Schema_Post__Blob_Claude_12.sql](mdc:code_html_template/SQLS/Current_Sqls/Latest_Schema_Post__Blob_Claude_12.sql)
+- **Schema file:** [adwiise_agent_Latest_Schema.sql](mdc:F:/project_workspace/adwiise-agent-database-repo/SQLS/Current_Sqls/adwiise_agent_Latest_Schema.sql) (`F:\project_workspace\adwiise-agent-database-repo\SQLS\Current_Sqls\adwiise_agent_Latest_Schema.sql`)
 - **News portal PRD (table list):** [documentation/news_portal/backend_prd.html](mdc:documentation/news_portal/backend_prd.html) and [documentation/news_portal/generic_prd.html](mdc:documentation/news_portal/generic_prd.html)
 
 ## **Summary Checklist for New Tables**
