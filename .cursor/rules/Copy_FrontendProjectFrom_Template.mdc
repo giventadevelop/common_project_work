@@ -46,7 +46,7 @@ Prefer the **common_project_work** path.
 6. **`.env.local` `NEXT_PUBLIC_APP_URL`:** keep `http://localhost:…` unless `-LocalPort` is set.
 7. **`.env.production`:** set `NEXT_PUBLIC_APP_URL`, `AMPLIFY_NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_CLERK_DOMAIN` to the new www host.
 8. Optional `-NewTenantId` replaces the source `NEXT_PUBLIC_TENANT_ID`.
-9. Copies this rule + `git_new_project_setup.mdc` + `git_local_push.mdc` into dest `.cursor/rules`.
+9. Copies **every file** under the source `.cursor/rules` into dest `.cursor/rules`. If the source is missing `Copy_FrontendProjectFrom_Template.mdc`, `git_new_project_setup.mdc`, or `git_local_push.mdc`, those three are added from `common_project_work`. A source rule is never replaced by that fallback.
 10. Optional `-InitGit` runs `git init` only (no commit, no remote).
 
 Source domain is read from dest-to-be source `.env.production` (`NEXT_PUBLIC_CLERK_DOMAIN` / `NEXT_PUBLIC_APP_URL`) if `-SourceDomain` is omitted.
@@ -96,6 +96,7 @@ Creates `F:\project_workspace\new-org` with rewritten env; `.env.local` stays on
 
 ## **DO / DON'T**
 
+- ✅ Copy every file in the source `.cursor/rules` to the new project
 - ✅ Copy `.env.local` so local `npm run dev` works
 - ✅ Exclude `.git` so the new folder is not tied to the template remote
 - ✅ Keep Clerk keys / Stripe keys as copied (same platform instance until infra onboarding)

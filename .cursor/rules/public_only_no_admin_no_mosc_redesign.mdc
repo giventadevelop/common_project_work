@@ -1,0 +1,118 @@
+---
+description: Public-only tenant — no /admin dashboard, no mosc-redesign/mosc/mosc-old, no /school CMS
+alwaysApply: true
+---
+
+# Public-only tenant (no admin, no MOSC redesign)
+
+This repo is a **public-only** tenant app. Copy this rule to sibling public-only projects (e.g. other cultural-org frontends) before stripping admin.
+
+## **This tenant is public-only**
+
+- No `/admin` routes, no Header Admin menu, no `src/app/admin`
+- No `src/app/mosc-redesign`, no `src/app/mosc`, no `src/app/mosc-old`
+- No `/school` CMS microsite (`src/app/school`) — this is the shared-template school site, **not** MOSC church `/schools`
+- Do not add those trees back
+
+## **Keep**
+
+- Public Header and Footer (product chrome, not church leftovers)
+- Clerk sign-in / sign-up
+- `/api/proxy/*` (backend gateway — not admin UI)
+- Webhooks (Stripe, etc.)
+- Public product pages: events, gallery, membership, polls, focus-groups, sponsors, checkout
+- [`MoscGalleryAlbumCard`](mdc:src/components/gallery/MoscGalleryAlbumCard.tsx) when the public gallery uses it (the `mosc-redesign` variant **name** on that card is allowed)
+
+## **Before deleting admin**
+
+Grep public/runtime code for admin imports and **move helpers first**:
+
+```
+rg "from '@/app/admin" src --glob "!src/app/admin/**"
+```
+
+Move only functions public pages still call into `src/lib/...` or the public feature folder (`src/app/polls/`, `src/app/focus-groups/`, `src/lib/payments/`).
+
+```typescript
+// ✅ DO: public poll page imports public actions
+import { fetchEventPollServer } from '@/app/polls/ApiServerActions';
+
+// ❌ DON'T: public page imports the deleted admin tree
+import { fetchEventPollServer } from '@/app/admin/polls/ApiServerActions';
+```
+
+Never leave public code importing `@/app/admin` after the cut.
+
+## **If `/school` exists in the target repo, delete it**
+
+The shared Next template added `TenantSiteType = 'SCHOOL'` and a CMS microsite (`about/staff/departments/facilities/activities/admissions` + Razorpay fee pay). It is leftover on cultural public-only tenants. **Only delete paths that exist** — skip missing files.
+
+This is **not** church Sunday School. Leave MOSC `/mosc/.../schools`, Sunday School HTML, `browserTabTitle` `schools:`, `schoolName` DTO fields, and `documentation/` / `public/images`.
+
+```
+rg "from '@/components/school|from '@/lib/school|SchoolHome|siteType === 'SCHOOL'|/api/school" src
+```
+
+Delete if present:
+
+- `src/app/school/`
+- `src/components/school/`
+- `src/lib/school/`
+- `src/app/api/school/`
+- `src/lib/payments/razorpayFee.ts` — only if nothing except school fee-checkout / Razorpay webhook imports it
+- `src/app/api/webhooks/razorpay/` — only if it only patches `school-fee-payments` / `school-fee-invoices` (keep Stripe / Clerk / Givebutter)
+
+Then unwire:
+
+- Middleware: `'/school(.*)'` and `'/api/school(.*)'`
+- Homepage: `SchoolHome` import and `siteType === 'SCHOOL'` early return — `/` always renders the cultural homepage
+- `TenantSiteType` `'SCHOOL'`, `TENANT_SITE_TYPE_LABELS.SCHOOL`, `siteTypePresets` `case 'SCHOOL'`
+- Admin org form `<option value="SCHOOL">` if that select exists
+- Smoke skip `'/school'` in TestSprite harness if present
+
+Do not restore `/school` after the cut.
+
+## **'use server' files**
+
+Do **not** re-export types from `'use server'` modules. This repo returned HTTP 500 on `/focus-groups/[slug]` because Next treated `export type { EventFocusGroupDTO }` as a server action.
+
+```typescript
+// ✅ DO: local non-exported types inside the server-actions file
+type FocusGroupAssociation = { id?: number; eventId?: number };
+
+// ❌ DON'T
+export type { EventFocusGroupDTO };
+```
+
+## **Header / layout**
+
+```tsx
+// ✅ DO: Header with nav + avatar / sign-in only
+<Header hideMenuItems={false} />
+
+// ❌ DON'T: Admin menu or tenant-admin prop
+<Header isTenantAdmin={isTenantAdmin} />
+```
+
+- Do not render an Admin dropdown or `ADMIN_MENU`
+- Do not run layout `isTenantAdmin` profile lookup (that clerk_auth “admin check on every page” rule does **not** apply on public-only tenants)
+- Do not call `/api/auth/admin-status` from the Header
+
+## **Tests**
+
+- Public inventory smoke only
+- No `TestSprite/admin-tests`
+- Route inventory must not classify `mosc-redesign` / `mosc` / `mosc-old` / `school`
+- No `test:admin*` or `test:mosc*` npm scripts
+
+## **Leave unless the user asks**
+
+- `documentation/` (including MOSC/church leftover docs)
+- `public/images`
+
+## **DO NOT**
+
+- Restore `/admin` pages, admin CRUD, WhatsApp admin, tenant-management UI, `EventForm`
+- Add `/mosc-redesign` routes or TestSprite kinds
+- Restore `/school` CMS routes, `SchoolHome`, Razorpay school-fee checkout, or `TenantSiteType` `'SCHOOL'`
+- Delete `public/images` or `documentation/` as part of this cut

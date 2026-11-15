@@ -309,21 +309,33 @@ if ((Test-Path $pkgPath) -and $DestName) {
     }
 }
 
-$ruleSrc = Join-Path $WorkspaceRoot 'common_project_work\.cursor\rules'
 $ruleDest = Join-Path $DestDir '.cursor\rules'
-$rulesToCopy = @(
-    'Copy_FrontendProjectFrom_Template.mdc',
-    'git_new_project_setup.mdc',
-    'git_local_push.mdc'
-)
-if (Test-Path $ruleSrc) {
-    if ($PSCmdlet.ShouldProcess($ruleDest, 'Copy cursor git rules')) {
-        New-Item -ItemType Directory -Path $ruleDest -Force | Out-Null
-        foreach ($r in $rulesToCopy) {
-            $from = Join-Path $ruleSrc $r
-            if (Test-Path $from) {
-                Copy-Item -LiteralPath $from -Destination (Join-Path $ruleDest $r) -Force
+$sourceRules = Join-Path $SourceDir '.cursor\rules'
+if ($PSCmdlet.ShouldProcess($ruleDest, 'Copy all cursor rules from source')) {
+    New-Item -ItemType Directory -Path $ruleDest -Force | Out-Null
+    $copied = 0
+    if (Test-Path $sourceRules) {
+        Get-ChildItem -LiteralPath $sourceRules -Recurse -File | ForEach-Object {
+            $rel = $_.FullName.Substring($sourceRules.Length).TrimStart('\')
+            $target = Join-Path $ruleDest $rel
+            $targetDir = Split-Path $target -Parent
+            if (-not (Test-Path -LiteralPath $targetDir)) {
+                New-Item -ItemType Directory -Path $targetDir -Force | Out-Null
             }
+            Copy-Item -LiteralPath $_.FullName -Destination $target -Force
+            $copied++
+        }
+    }
+    Write-Host "[SUCCESS] Copied $copied cursor rule(s) from source .cursor/rules" -ForegroundColor Green
+
+    # Fill only the setup rules the source project does not already have.
+    $fallbackSrc = Join-Path $WorkspaceRoot 'common_project_work\.cursor\rules'
+    foreach ($r in @('Copy_FrontendProjectFrom_Template.mdc', 'git_new_project_setup.mdc', 'git_local_push.mdc')) {
+        $destFile = Join-Path $ruleDest $r
+        $from = Join-Path $fallbackSrc $r
+        if (-not (Test-Path -LiteralPath $destFile) -and (Test-Path -LiteralPath $from)) {
+            Copy-Item -LiteralPath $from -Destination $destFile -Force
+            Write-Host "[SUCCESS] Added missing setup rule $r" -ForegroundColor Green
         }
     }
 }
