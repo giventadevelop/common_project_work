@@ -95,7 +95,7 @@ Apply the **same idea** to any new typeahead: identify the human label fields + 
 ## Required Behaviors (Smoothness)
 
 1. **Local controlled input** — Keep `inputValue` in component state. Do **not** drive the input solely from URL/`router` on every keystroke (flicker / list refetch thrash).
-2. **Do not write partial typeahead text into the URL or list fetch** — Typing filters the dropdown only. Commit `?tenant=` / `searchTerm` **only** on suggestion select, Enter, Search, or clear. Debouncing partial strings into the URL or a listing `useEffect` causes wrong filters and refetch thrash.
+2. **Do not write partial typeahead text into the URL or list fetch** — Typing filters the dropdown only. Commit `?tenant=` / `searchTerm` on suggestion select, Enter, Search, the Clear control, or when Backspace/Delete empties the field. Select All (Ctrl/Cmd+A) and then Backspace or Delete is the same clear: the highlighted range is removed, and if the trimmed field is empty the list resets. A highlighted range that still leaves text does not commit. Debouncing partial strings into the URL or a listing `useEffect` causes wrong filters and refetch thrash.
 3. **Multi-field server (and local) match** — See Core Principle above. Never ship a typeahead that only searches the pretty name when users also know the id/code. Never ship a listing fetch that only searches `searchText` when the menu matches title/name.
 4. **`onMouseDown` + `preventDefault` on options** — So input `blur` does not close the menu before `click` runs.
 5. **Click-outside closes** — `mousedown` on `document`; ignore events inside the container `ref`.
@@ -103,8 +103,8 @@ Apply the **same idea** to any new typeahead: identify the human label fields + 
 7. **ARIA** — `role="combobox"`; `aria-expanded`, `aria-controls`, `aria-autocomplete="list"`; list `role="listbox"` / `role="option"`. Prefer `useId()` for listbox ids; keep stable product ids (e.g. `admin-filter-tenant-id`) when tests/docs reference them.
 8. **Clear control** — Clear button uses `onMouseDown={(e) => e.preventDefault()}`.
 9. **Resolve URL → label once** — Hydrating a label from a committed id: guard with `resolveAttemptedRef`; accept **exact id matches only** (never `results[0]`). Do **not** put the growing suggestion cache in that effect’s deps in a way that re-fires the same search (infinite loop).
-10. **Shared extras** — Pass the same date/active/sort extras into typeahead as the list (`endDate.lessThan` vs `startDate.greaterThanOrEqual` on `/events`) so the menu cannot promise a row the grid will drop.
-
+10. **Resolve URL → label once** — Hydrating a label from a committed id: guard with `resolveAttemptedRef`; accept **exact id matches only** (never `results[0]`). Do **not** put the growing suggestion cache in that effect’s deps in a way that re-fires the same search (infinite loop).
+11. **Shared extras** — Pass the same date/active/sort extras into typeahead as the list (`endDate.lessThan` vs `startDate.greaterThanOrEqual` on `/events`) so the menu cannot promise a row the grid will drop.
 ---
 
 ## DO
@@ -126,7 +126,17 @@ const [inputValue, setInputValue] = useState(valueFromUrl);
 const [open, setOpen] = useState(false);
 // filter suggestions from inputValue; open on focus / change
 // commit URL only on select / Enter / clear — never while typing partial queries
+// commit on select / Enter / Clear, when Backspace or Delete empties the field,
+// and when Select All then Backspace or Delete removes the whole value
 ```
+
+```tsx
+// ✅ DO: emptying the field runs the same reset as the Clear button
+onChange={(event) => {
+  const next = event.target.value;
+  onDraftChange(next);
+  if (!next.trim()) onCommit('');
+}}
 
 ```typescript
 // ✅ Local multi-field filter (mirror server fields)
@@ -205,6 +215,8 @@ Commit with `commitSearch`: trim the value, set draft + committed term, `setPage
 - **Click Enter for more**, which commits the typed text the same way Enter does.
 - Clear, which commits `''`.
 - Form submit (Search button `type="submit"`).
+- Backspace, Delete, or the native search clear that leaves the trimmed field empty. Select All and then Backspace or Delete is included: deleting the highlighted value calls the same `commitSearch('')` / clear handler as the Clear button and restores the unfiltered list. Deleting characters, or a highlighted range, that still leaves text does not commit.
+- Form submit (Search button `type="submit"`).
 
 Every option and the more-row use `onMouseDown={(event) => event.preventDefault()}` so blur does not drop the click. Click-outside still closes the menu. Escape closes it without committing.
 
@@ -279,8 +291,7 @@ MD Strikers sponsors keep `FcCatalogTypeahead` and server-action JWT (`fetchSpon
 - **Remote search on public pages.** Client: [`fetchPublicTypeahead`](mdc:src/lib/publicTypeaheadSearch.ts) / [`fetchPublicSearchPage`](mdc:src/lib/publicTypeaheadSearch.ts) → relative `/api/proxy/{resource}` via `proxyApiPath`. Do **not** add `tenantId.equals` (the proxy injects it). Do **not** call `getAppUrl()` from the browser. Parse list bodies with `parseProxyList` (array / `content` / HAL) — do not treat a non-array body as one fake row.
 - **Committed listing.** When `searchTerm` is set, use `fetchPublicSearchPage` with the **same** `containsFields` and extras as typeahead. Empty term stays a single unfiltered request. `totalCount` is `max(x-total-count)` across jobs.
 - **Gallery server actions.** [`ApiServerActions.ts`](mdc:src/app/gallery/ApiServerActions.ts) `fetchAlbumsForGallery` / `fetchEventsForGallery` parallel the album/event field lists via `fetchWithJwtRetry` (copy extras, merge by id). Empty term stays one request.
-- **Keep Search / Clear / date range.** Typeahead replaces only the text field. Date inputs and the Search/Clear buttons stay. Search commits the current draft; Clear commits `''`.
-- **Dropdown CSS** lives under `body.modernist-home .mh-events-search` in [`modernist-homepage.css`](mdc:src/styles/modernist-homepage.css) (`overflow: visible`, listbox surface, hover). Do not restyle the admin combobox defaults for public pages — wrap with `PublicListSearchCombobox`.
+- **Keep Search / Clear / date range.** Typeahead replaces only the text field. Date inputs and the Search/Clear buttons stay. Search commits the current draft. Clear commits `''`. Backspace or Delete that empties the field, including Select All and then Backspace or Delete, commits `''` through the same handler. A deletion that still leaves text does not commit.
 - **Focus groups** already load the full set client-side — local `AdminListSearchCombobox` / `FcCatalogTypeahead` is enough (no `searchRemote`); include `searchText`, name, slug, description, id.
 - **MD Strikers:** keep `FcCatalogTypeahead`; wire list + suggestions to `PUBLIC_*` fields. Do not drop in `PublicListSearchCombobox`.
 
@@ -321,4 +332,4 @@ MD Strikers sponsors keep `FcCatalogTypeahead` and server-action JWT (`fetchSpon
 - [ ] Public `mh-events-search` title/name field is a combobox, not a raw `<input>`
 - [ ] `/sponsors` menu lists at most 20 suggestions, returns `x-total-count`, and shows **Click Enter for more** when the total is above 20
 - [ ] `/sponsors` catalog changes on Enter, a suggestion pick, that more-row, Search submit, or Clear — never on a typing timer
-- [ ] `/events` typeahead extraParams match list date filter (past `endDate.lessThan` vs future `startDate.greaterThanOrEqual`)
+- [ ] `/sponsors` catalog changes on Enter, a suggestion pick, that more-row, Search submit, Clear, when Backspace/Delete empties the field, or when Select All and then Backspace/Delete removes the whole value — never on a typing timer while text remains
