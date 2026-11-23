@@ -44,10 +44,11 @@ Prefer the **common_project_work** path.
 4. **Rewrites** the detected satellite host in those env files to `-NewDomain` (`www.` + apex + `https://` variants).
 5. **Does not rewrite** primary/API hosts: `adwiiseagent.ai`, `api.adwiiseagent.ai`, `api-dev.adwiiseagent.ai`, `event-site-manager-dev.com`, `event-site-manager-prod.com` (legacy aliases), `clerk.adwiiseagent.ai`, `localhost`.
 6. **`.env.local` `NEXT_PUBLIC_APP_URL`:** keep `http://localhost:…` unless `-LocalPort` is set.
-7. **`.env.production`:** set `NEXT_PUBLIC_APP_URL`, `AMPLIFY_NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_CLERK_DOMAIN` to the new www host.
-8. Optional `-NewTenantId` replaces the source `NEXT_PUBLIC_TENANT_ID`.
-9. Copies **every file** under the source `.cursor/rules` into dest `.cursor/rules`. If the source is missing `Copy_FrontendProjectFrom_Template.mdc`, `git_new_project_setup.mdc`, or `git_local_push.mdc`, those three are added from `common_project_work`. A source rule is never replaced by that fallback.
-10. Optional `-InitGit` runs `git init` only (no commit, no remote).
+7. **`.env.production`:** set `NEXT_PUBLIC_APP_URL` and `AMPLIFY_NEXT_PUBLIC_APP_URL` to the new host. Leave Clerk satellite flags off until that host is registered (see **Local Clerk values** below).
+8. **Local Clerk:** do **not** set `NEXT_PUBLIC_CLERK_IS_SATELLITE=true` or `NEXT_PUBLIC_CLERK_DOMAIN` in `.env.local` on a local copy. Replicate the source template (kcnj-temp).
+9. Optional `-NewTenantId` replaces the source `NEXT_PUBLIC_TENANT_ID`.
+10. Copies **every file** under the source `.cursor/rules` into dest `.cursor/rules`. If the source is missing `Copy_FrontendProjectFrom_Template.mdc`, `git_new_project_setup.mdc`, or `git_local_push.mdc`, those three are added from `common_project_work`. A source rule is never replaced by that fallback.
+11. Optional `-InitGit` runs `git init` only (no commit, no remote).
 
 Source domain is read from dest-to-be source `.env.production` (`NEXT_PUBLIC_CLERK_DOMAIN` / `NEXT_PUBLIC_APP_URL`) if `-SourceDomain` is omitted.
 
@@ -74,6 +75,7 @@ Source domain is read from dest-to-be source `.env.production` (`NEXT_PUBLIC_CLE
 5. Report dest path, domain rewrite summary (**no secret values**), and next steps.
 6. **Do not** `git add` / commit `.env.local` or `.env.production`.
 7. **Do not** create GitHub/Amplify/Clerk unless the user asked. If they want a repo next: [git_new_project_setup.mdc](mdc:.cursor/rules/git_new_project_setup.mdc).
+8. **Local Clerk:** after the copy, keep `.env.local` satellite flags the same as the source (see **Local Clerk values**). A handoff that sets `NEXT_PUBLIC_CLERK_IS_SATELLITE=true` and `NEXT_PUBLIC_CLERK_DOMAIN` to the new host is for after that domain is registered in Clerk, not for `npm run dev` on localhost.
 
 ```powershell
 cd F:\project_workspace\<new-folder>
@@ -94,16 +96,46 @@ Creates `F:\project_workspace\new-org` with rewritten env; `.env.local` stays on
 
 ---
 
+## **Local Clerk values (domain not registered yet)**
+
+A local copy runs on `http://localhost:<port>`. The new customer domain is **not** in Clerk, Route 53, or Amplify yet. `.env.local` must keep the **source template's local Clerk values** (kcnj-temp). Do not turn the local app into a satellite.
+
+Clerk fails `npm run dev` with:
+
+```text
+Invalid signInUrl. A satellite application requires a signInUrl for development instances.
+```
+
+That error is `NEXT_PUBLIC_CLERK_IS_SATELLITE=true` while `NEXT_PUBLIC_CLERK_SIGN_IN_URL` is still a relative path (`/sign-in`). Development satellite instances require an **absolute** `signInUrl`. kcnj-temp avoids that by leaving satellite mode off, so the relative URLs are valid.
+
+| Variable | Local `.env.local` (same as kcnj-temp) |
+|---|---|
+| `NEXT_PUBLIC_CLERK_IS_SATELLITE` | `false` |
+| `NEXT_PUBLIC_CLERK_DOMAIN` | unset (comment only, e.g. `# NEXT_PUBLIC_CLERK_DOMAIN=<new-domain>`) |
+| `NEXT_PUBLIC_CLERK_SIGN_IN_URL` | `/sign-in` |
+| `NEXT_PUBLIC_CLERK_SIGN_UP_URL` | `/sign-up` |
+| `NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL` | `/` |
+| `NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL` | `/` |
+| `NEXT_PUBLIC_APP_URL` | `http://localhost:<LocalPort>` |
+| `NEXT_PUBLIC_PRIMARY_DOMAIN` | leave as the template (`www.adwiiseagent.ai`) |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`, `CLERK_WEBHOOK_SECRET` | same dev-instance values as the source; do not rotate them for the copy |
+
+`.env.production` may store the future public `NEXT_PUBLIC_APP_URL`. Leave `NEXT_PUBLIC_CLERK_IS_SATELLITE=false` and do not set `NEXT_PUBLIC_CLERK_DOMAIN` there either until the domain is registered. Restart `npm run dev` after changing these; Next.js reads them at process start.
+
+---
+
 ## **DO / DON'T**
 
 - ✅ Copy every file in the source `.cursor/rules` to the new project
 - ✅ Copy `.env.local` so local `npm run dev` works
 - ✅ Exclude `.git` so the new folder is not tied to the template remote
 - ✅ Keep Clerk keys / Stripe keys as copied (same platform instance until infra onboarding)
+- ✅ Keep local `.env.local` Clerk satellite flags identical to the source (`IS_SATELLITE=false`, domain unset, relative `/sign-in` and `/sign-up`)
 - ✅ Treat dest `.env*` as secrets
 - ❌ Use [git_robocopy_mosc_sync.mdc](mdc:.cursor/rules/git_robocopy_mosc_sync.mdc) for a **new** customer folder (that rule overwrites **existing** test-site/template and **skips** `.env.local`)
 - ❌ Commit env files
 - ❌ Rewrite `NEXT_PUBLIC_PRIMARY_DOMAIN` or API hosts
+- ❌ Set `NEXT_PUBLIC_CLERK_IS_SATELLITE=true` or `NEXT_PUBLIC_CLERK_DOMAIN` in `.env.local` before the new domain is registered in Clerk
 - ❌ Register Route 53 / Amplify / Clerk as part of this copy
 
 ---
