@@ -205,6 +205,15 @@ function Update-TemplateEnvFile {
         $content = Set-EnvKey $content 'NEXT_PUBLIC_CLERK_DOMAIN' $NewHost.Www
         $changes.Add("NEXT_PUBLIC_APP_URL=$($NewHost.HttpsWww)")
         $changes.Add("NEXT_PUBLIC_CLERK_DOMAIN=$($NewHost.Www)")
+        # .env.production is what Amplify builds. A copied local API URL cannot reach the VPC database.
+        foreach ($apiKey in @('NEXT_PUBLIC_API_BASE_URL', 'AMPLIFY_NEXT_PUBLIC_API_BASE_URL')) {
+            $current = ''
+            if ($content -match "(?m)^$([regex]::Escape($apiKey))=(.*)$") { $current = $Matches[1].Trim() }
+            if (-not $current -or $current -match 'localhost|127\.0\.0\.1') {
+                $content = Set-EnvKey $content $apiKey 'https://api.adwiiseagent.ai'
+                $changes.Add("$apiKey=https://api.adwiiseagent.ai")
+            }
+        }
     }
 
     if ($content -ne $original) {

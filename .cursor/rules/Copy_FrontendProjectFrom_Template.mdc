@@ -14,8 +14,9 @@ This is the **local workspace clone**. It is **not** Amplify/Clerk/Route 53 (tha
 
 ```
 Copy F:\project_workspace\kcnj-temp to F:\project_workspace\<new-folder>.
-Include .env.local. Change the domain to www.<new-domain>.com.
-Optional: tenant id <tenant_id>, local port 3003.
+Copy .env.local and .env.production.
+Change the domain to www.<new-domain>.com and set the tenant id to <tenant_id>.
+Optional: local port 3003.
 Follow .cursor/rules/Copy_FrontendProjectFrom_Template.mdc
 ```
 
@@ -40,13 +41,21 @@ Prefer the **common_project_work** path.
 
 1. **Robocopy** source → **new** dest (`/E`).
 2. **Excludes:** `.git`, `.claude`, `node_modules`, `.next`, `.turbo`, `out`, `dist`, `coverage`, `.amplify`, `.vercel`.
-3. **Includes** `.env.local` and `.env.production` (gitignored; never commit).
-4. **Rewrites** the detected satellite host in those env files to `-NewDomain` (`www.` + apex + `https://` variants).
+3. **Includes** `.env.local` and `.env.production` (gitignored; never commit). Robocopy copies both. The script then rewrites the destination `.env.production`, not only `.env.local`.
+4. **Rewrites** the detected satellite host in both env files to `-NewDomain` (`www.` + apex + `https://` variants).
 5. **Does not rewrite** primary/API hosts: `adwiiseagent.ai`, `api.adwiiseagent.ai`, `api-dev.adwiiseagent.ai`, `event-site-manager-dev.com`, `event-site-manager-prod.com` (legacy aliases), `clerk.adwiiseagent.ai`, `localhost`.
-6. **`.env.local` `NEXT_PUBLIC_APP_URL`:** keep `http://localhost:…` unless `-LocalPort` is set.
-7. **`.env.production`:** set `NEXT_PUBLIC_APP_URL` and `AMPLIFY_NEXT_PUBLIC_APP_URL` to the new host. Leave Clerk satellite flags off until that host is registered (see **Local Clerk values** below).
+6. **`.env.local` `NEXT_PUBLIC_APP_URL`:** keep `http://localhost:…` unless `-LocalPort` is set. Leave its API URL on `http://localhost:8080`.
+7. **`.env.production` is updated for the new customer.** Pass `-NewTenantId`. The script does not look up a tenant id. It replaces the source tenant id string everywhere it appears in this file, including `NEXT_PUBLIC_TENANT_ID` and `AMPLIFY_NEXT_PUBLIC_TENANT_ID`. It also sets:
+
+| Key | New value |
+|---|---|
+| `NEXT_PUBLIC_APP_URL`, `AMPLIFY_NEXT_PUBLIC_APP_URL` | `https://www.<new-domain>` |
+| `NEXT_PUBLIC_CLERK_DOMAIN` | `www.<new-domain>` |
+| `NEXT_PUBLIC_API_BASE_URL`, `AMPLIFY_NEXT_PUBLIC_API_BASE_URL` | `https://api.adwiiseagent.ai` when the copied value is empty or localhost. An existing production API URL is left as-is. |
+
+Leave `NEXT_PUBLIC_CLERK_IS_SATELLITE` as copied until that host is registered (see **Local Clerk values** below).
 8. **Local Clerk:** do **not** set `NEXT_PUBLIC_CLERK_IS_SATELLITE=true` or `NEXT_PUBLIC_CLERK_DOMAIN` in `.env.local` on a local copy. Replicate the source template (kcnj-temp).
-9. Optional `-NewTenantId` replaces the source `NEXT_PUBLIC_TENANT_ID`.
+9. The same `-NewTenantId` string replace runs in `.env.local`. `.env.local` still keeps the localhost app URL and the localhost API URL.
 10. Copies **every file** under the source `.cursor/rules` into dest `.cursor/rules`. If the source is missing `Copy_FrontendProjectFrom_Template.mdc`, `git_new_project_setup.mdc`, or `git_local_push.mdc`, those three are added from `common_project_work`. A source rule is never replaced by that fallback.
 11. Optional `-InitGit` runs `git init` only (no commit, no remote).
 
@@ -120,7 +129,7 @@ That error is `NEXT_PUBLIC_CLERK_IS_SATELLITE=true` while `NEXT_PUBLIC_CLERK_SIG
 | `NEXT_PUBLIC_PRIMARY_DOMAIN` | leave as the template (`www.adwiiseagent.ai`) |
 | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`, `CLERK_WEBHOOK_SECRET` | same dev-instance values as the source; do not rotate them for the copy |
 
-`.env.production` may store the future public `NEXT_PUBLIC_APP_URL`. Leave `NEXT_PUBLIC_CLERK_IS_SATELLITE=false` and do not set `NEXT_PUBLIC_CLERK_DOMAIN` there either until the domain is registered. Restart `npm run dev` after changing these; Next.js reads them at process start.
+`.env.production` stores the public site: app URL, `NEXT_PUBLIC_CLERK_DOMAIN` set to the new host, the new tenant id, and `https://api.adwiiseagent.ai` when the copied API URL was empty or localhost. Leave `NEXT_PUBLIC_CLERK_IS_SATELLITE=false` in that file until the domain is registered in Clerk. Restart `npm run dev` after changing `.env.local`; Next.js reads it at process start.
 
 ---
 
@@ -128,6 +137,7 @@ That error is `NEXT_PUBLIC_CLERK_IS_SATELLITE=true` while `NEXT_PUBLIC_CLERK_SIG
 
 - ✅ Copy every file in the source `.cursor/rules` to the new project
 - ✅ Copy `.env.local` so local `npm run dev` works
+- ✅ Copy `.env.production` and rewrite it with `-NewDomain` and `-NewTenantId` (app URL, Clerk domain, tenant id, and a localhost API URL → `https://api.adwiiseagent.ai`)
 - ✅ Exclude `.git` so the new folder is not tied to the template remote
 - ✅ Keep Clerk keys / Stripe keys as copied (same platform instance until infra onboarding)
 - ✅ Keep local `.env.local` Clerk satellite flags identical to the source (`IS_SATELLITE=false`, domain unset, relative `/sign-in` and `/sign-up`)
